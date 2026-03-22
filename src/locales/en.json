@@ -1,0 +1,91 @@
+{
+  "nav": {
+    "home": "Home",
+    "properties": "Properties",
+    "experiences": "Experiences",
+    "services": "Services",
+    "dashboard": "My Dashboard",
+    "login": "Login",
+    "signup": "Sign Up"
+  },
+  "hero": {
+    "title": "Find your next stay in Tunisia",
+    "subtitle": "Unique accommodations, experiences, and services",
+    "searchPlaceholder": "Search destination...",
+    "searchButton": "Search"
+  },
+  "properties": {
+    "title": "Properties to Rent",
+    "subtitle": "Various vacation rentals: apartments, houses, villas, private rooms, cabins, etc.",
+    "apartment": "Apartment",
+    "house": "House",
+    "villa": "Villa",
+    "privateRoom": "Private Room",
+    "cabin": "Cabin",
+    "perNight": "per night",
+    "viewDetails": "View Details"
+  },
+  "experiences": {
+    "title": "Experiences",
+    "subtitle": "Live authentic experiences offered by local hosts",
+    "guidedTours": "Guided Tours",
+    "cultural": "Cultural",
+    "culinary": "Culinary",
+    "adventure": "Adventures",
+    "artistic": "Artistic",
+    "bookNow": "Book Now"
+  },
+  "services": {
+    "title": "Services",
+    "subtitle": "Book professional services without booking accommodation",
+    "privateChef": "Private Chef",
+    "massage": "Massage",
+    "sportsCoach": "Sports Coach",
+    "photography": "Photography",
+    "hairdressing": "Hairdressing",
+    "catering": "Catering",
+    "bookService": "Book Service"
+  },
+  "dashboard": {
+    "title": "My Dashboard",
+    "traveler": "Traveler",
+    "host": "Host",
+    "serviceProvider": "Service Provider",
+    "myBookings": "My Bookings",
+    "myListings": "My Listings",
+    "myServices": "My Services",
+    "messages": "Messages",
+    "profile": "My Profile",
+    "statistics": "Statistics",
+    "settings": "Settings",
+    "upcoming": "Upcoming",
+    "past": "Past",
+    "revenue": "Revenue",
+    "reviews": "Reviews",
+    "calendar": "Calendar",
+    "earnings": "Earnings"
+  },
+  "common": {
+    "language": "Language",
+    "french": "Français",
+    "arabic": "العربية",
+    "english": "English",
+    "search": "Search",
+    "filter": "Filter",
+    "book": "Book",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Operation successful",
+    "guests": "guests",
+    "checkIn": "Check In",
+    "checkOut": "Check Out",
+    "date": "Date",
+    "price": "Price",
+    "rating": "Rating",
+    "reviews": "reviews"
+  }
+}

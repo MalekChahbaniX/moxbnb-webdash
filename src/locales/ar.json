@@ -1,0 +1,91 @@
+{
+  "nav": {
+    "home": "الرئيسية",
+    "properties": "أماكن الإقامة",
+    "experiences": "التجارب",
+    "services": "الخدمات",
+    "dashboard": "لوحة التحكم",
+    "login": "تسجيل الدخول",
+    "signup": "التسجيل"
+  },
+  "hero": {
+    "title": "ابحث عن إقامتك التالية في تونس",
+    "subtitle": "أماكن إقامة وتجارب وخدمات فريدة",
+    "searchPlaceholder": "البحث عن وجهة...",
+    "searchButton": "بحث"
+  },
+  "properties": {
+    "title": "أماكن للإيجار",
+    "subtitle": "عروض عديدة للإيجار: شقق، منازل، فيلات، غرف خاصة، أكواخ، إلخ",
+    "apartment": "شقة",
+    "house": "منزل",
+    "villa": "فيلا",
+    "privateRoom": "غرفة خاصة",
+    "cabin": "كوخ",
+    "perNight": "لكل ليلة",
+    "viewDetails": "عرض التفاصيل"
+  },
+  "experiences": {
+    "title": "التجارب",
+    "subtitle": "عش تجارب أصيلة يقدمها مضيفون محليون",
+    "guidedTours": "جولات إرشادية",
+    "cultural": "ثقافي",
+    "culinary": "طهي",
+    "adventure": "مغامرات",
+    "artistic": "فني",
+    "bookNow": "احجز الآن"
+  },
+  "services": {
+    "title": "الخدمات",
+    "subtitle": "احجز خدمات احترافية دون حجز مكان إقامة",
+    "privateChef": "طاهٍ خاص",
+    "massage": "تدليك",
+    "sportsCoach": "مدرب رياضي",
+    "photography": "تصوير",
+    "hairdressing": "حلاقة",
+    "catering": "تقديم طعام",
+    "bookService": "احجز الخدمة"
+  },
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "traveler": "المسافر",
+    "host": "المضيف",
+    "serviceProvider": "مقدم الخدمة",
+    "myBookings": "حجوزاتي",
+    "myListings": "إعلاناتي",
+    "myServices": "خدماتي",
+    "messages": "الرسائل",
+    "profile": "ملفي الشخصي",
+    "statistics": "الإحصائيات",
+    "settings": "الإعدادات",
+    "upcoming": "القادمة",
+    "past": "السابقة",
+    "revenue": "الإيرادات",
+    "reviews": "التقييمات",
+    "calendar": "التقويم",
+    "earnings": "الأرباح"
+  },
+  "common": {
+    "language": "اللغة",
+    "french": "Français",
+    "arabic": "العربية",
+    "english": "English",
+    "search": "بحث",
+    "filter": "تصفية",
+    "book": "حجز",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ",
+    "success": "تمت العملية بنجاح",
+    "guests": "ضيوف",
+    "checkIn": "تسجيل الوصول",
+    "checkOut": "تسجيل المغادرة",
+    "date": "التاريخ",
+    "price": "السعر",
+    "rating": "التقييم",
+    "reviews": "تقييمات"
+  }
+}

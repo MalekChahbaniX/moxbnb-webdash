@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // API base URL - change this to match your backend
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = 'https://moxbnb-back.vercel.app/api';
 
 // Create axios instance with default configuration
 const apiClient: AxiosInstance = axios.create({

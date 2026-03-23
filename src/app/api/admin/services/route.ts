@@ -1,38 +1,27 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import connectDB from '@/lib/mongodb';
+import { Service } from '@/models';
 
 export async function GET(request: Request) {
   try {
+    await connectDB();
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     const available = searchParams.get('available');
 
-    const where: any = {};
+    const filter: any = {};
 
     if (type) {
-      where.type = type;
+      filter.type = type;
     }
 
     if (available !== null) {
-      where.isAvailable = available === 'true';
+      filter.isAvailable = available === 'true';
     }
 
-    const services = await db.service.findMany({
-      where,
-      include: {
-        provider: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+    const services = await Service.find(filter)
+      .populate('provider', 'id name email phone')
+      .sort({ createdAt: -1 });
 
     return NextResponse.json(services);
   } catch (error) {
@@ -46,6 +35,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    await connectDB();
     const body = await request.json();
     const {
       title,
@@ -58,27 +48,18 @@ export async function POST(request: Request) {
       providerId
     } = body;
 
-    const service = await db.service.create({
-      data: {
-        title,
-        description,
-        type,
-        location,
-        city,
-        price: parseFloat(price),
-        duration,
-        providerId
-      },
-      include: {
-        provider: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
-      }
+    const service = await Service.create({
+      title,
+      description,
+      type,
+      location,
+      city,
+      price: parseFloat(price),
+      duration,
+      providerId
     });
+    
+    await service.populate('provider', 'id name email');
 
     return NextResponse.json(service, { status: 201 });
   } catch (error) {
@@ -92,22 +73,15 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    await connectDB();
     const body = await request.json();
     const { serviceId, updateData } = body;
 
-    const service = await db.service.update({
-      where: { id: serviceId },
-      data: updateData,
-      include: {
-        provider: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
-      }
-    });
+    const service = await Service.findByIdAndUpdate(
+      serviceId,
+      updateData,
+      { new: true }
+    ).populate('provider', 'id name email');
 
     return NextResponse.json(service);
   } catch (error) {
@@ -121,12 +95,11 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    await connectDB();
     const { searchParams } = new URL(request.url);
     const serviceId = searchParams.get('id');
 
-    await db.service.delete({
-      where: { id: serviceId as string }
-    });
+    await Service.findByIdAndDelete(serviceId);
 
     return NextResponse.json({ message: 'Service deleted successfully' });
   } catch (error) {

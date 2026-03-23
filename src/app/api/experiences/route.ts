@@ -1,47 +1,37 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import connectDB from '@/lib/mongodb';
+import { Experience } from '@/models';
 
 export async function GET(request: Request) {
   try {
+    await connectDB();
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const city = searchParams.get('city');
     const minPrice = searchParams.get('minPrice');
     const maxPrice = searchParams.get('maxPrice');
 
-    const where: any = {
+    const filter: any = {
       isActive: true
     };
 
     if (category) {
-      where.category = category;
+      filter.category = category;
     }
 
     if (city) {
-      where.city = city;
+      filter.city = city;
     }
 
     if (minPrice || maxPrice) {
-      where.price = {};
-      if (minPrice) where.price.gte = parseFloat(minPrice);
-      if (maxPrice) where.price.lte = parseFloat(maxPrice);
+      filter.price = {};
+      if (minPrice) filter.price.$gte = parseFloat(minPrice);
+      if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
     }
 
-    const experiences = await db.experience.findMany({
-      where,
-      include: {
-        host: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+    const experiences = await Experience.find(filter)
+      .populate('host', 'id name email avatar')
+      .sort({ createdAt: -1 });
 
     return NextResponse.json(experiences);
   } catch (error) {
@@ -55,6 +45,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    await connectDB();
     const body = await request.json();
     const {
       title,
@@ -70,30 +61,21 @@ export async function POST(request: Request) {
       hostId
     } = body;
 
-    const experience = await db.experience.create({
-      data: {
-        title,
-        description,
-        category,
-        location,
-        city,
-        price: parseFloat(price),
-        duration,
-        maxGuests: parseInt(maxGuests),
-        requirements,
-        images: images ? JSON.stringify(images) : null,
-        hostId
-      },
-      include: {
-        host: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true
-          }
-        }
-      }
+    const experience = await Experience.create({
+      title,
+      description,
+      category,
+      location,
+      city,
+      price: parseFloat(price),
+      duration,
+      maxGuests: parseInt(maxGuests),
+      requirements,
+      images: images || [],
+      hostId
     });
+    
+    await experience.populate('host', 'id name avatar');
 
     return NextResponse.json(experience, { status: 201 });
   } catch (error) {

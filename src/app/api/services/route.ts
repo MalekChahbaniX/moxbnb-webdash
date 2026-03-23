@@ -1,42 +1,32 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import connectDB from '@/lib/mongodb';
+import { Service } from '@/models';
 
 export async function GET(request: Request) {
   try {
+    await connectDB();
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     const city = searchParams.get('city');
     const available = searchParams.get('available');
 
-    const where: any = {};
+    const filter: any = {};
 
     if (type) {
-      where.type = type;
+      filter.type = type;
     }
 
     if (city) {
-      where.city = city;
+      filter.city = city;
     }
 
     if (available !== null) {
-      where.isAvailable = available === 'true';
+      filter.isAvailable = available === 'true';
     }
 
-    const services = await db.service.findMany({
-      where,
-      include: {
-        provider: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+    const services = await Service.find(filter)
+      .populate('provider', 'id name email phone avatar')
+      .sort({ createdAt: -1 });
 
     return NextResponse.json(services);
   } catch (error) {
@@ -50,6 +40,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    await connectDB();
     const body = await request.json();
     const {
       title,
@@ -62,27 +53,18 @@ export async function POST(request: Request) {
       providerId
     } = body;
 
-    const service = await db.service.create({
-      data: {
-        title,
-        description,
-        type,
-        location,
-        city,
-        price: parseFloat(price),
-        duration,
-        providerId
-      },
-      include: {
-        provider: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true
-          }
-        }
-      }
+    const service = await Service.create({
+      title,
+      description,
+      type,
+      location,
+      city,
+      price: parseFloat(price),
+      duration,
+      providerId
     });
+    
+    await service.populate('provider', 'id name avatar');
 
     return NextResponse.json(service, { status: 201 });
   } catch (error) {

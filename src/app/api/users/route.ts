@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import connectDB from '@/lib/mongodb';
+import { User } from '@/models';
 
 export async function POST(request: Request) {
   try {
+    await connectDB();
     const body = await request.json();
     const { email, name, password, phone, language, role } = body;
 
     // Check if user already exists
-    const existingUser = await db.user.findUnique({
-      where: { email }
-    });
+    const existingUser = await User.findOne({ email });
 
     if (existingUser) {
       return NextResponse.json(
@@ -18,15 +18,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await db.user.create({
-      data: {
-        email,
-        name,
-        password, // Note: In production, this should be hashed
-        phone,
-        language: language || 'fr',
-        role: role || 'traveler'
-      }
+    const user = await User.create({
+      email,
+      name,
+      password, // Note: In production, this should be hashed
+      phone,
+      language: language || 'fr',
+      role: role || 'traveler'
     });
 
     // Return user without password

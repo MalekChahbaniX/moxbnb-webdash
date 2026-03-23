@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import connectDB from '@/lib/mongodb';
+import { Booking } from '@/models';
 
 export async function GET(request: Request) {
   try {
+    await connectDB();
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
@@ -13,21 +15,9 @@ export async function GET(request: Request) {
       );
     }
 
-    const bookings = await db.booking.findMany({
-      where: { userId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+    const bookings = await Booking.find({ userId })
+      .populate('user', 'id name email')
+      .sort({ createdAt: -1 });
 
     return NextResponse.json(bookings);
   } catch (error) {
@@ -41,6 +31,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    await connectDB();
     const body = await request.json();
     const {
       type,
@@ -53,27 +44,18 @@ export async function POST(request: Request) {
       specialRequests
     } = body;
 
-    const booking = await db.booking.create({
-      data: {
-        type,
-        itemId,
-        userId,
-        checkIn: checkIn ? new Date(checkIn) : null,
-        checkOut: checkOut ? new Date(checkOut) : null,
-        guests: parseInt(guests),
-        totalPrice: parseFloat(totalPrice),
-        specialRequests
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
-      }
+    const booking = await Booking.create({
+      type,
+      itemId,
+      userId,
+      checkIn: checkIn ? new Date(checkIn) : null,
+      checkOut: checkOut ? new Date(checkOut) : null,
+      guests: parseInt(guests),
+      totalPrice: parseFloat(totalPrice),
+      specialRequests
     });
+    
+    await booking.populate('user', 'id name email');
 
     return NextResponse.json(booking, { status: 201 });
   } catch (error) {

@@ -1,41 +1,30 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import connectDB from '@/lib/mongodb';
+import { Booking } from '@/models';
 
 export async function GET(request: Request) {
   try {
+    await connectDB();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const type = searchParams.get('type');
 
-    const where: any = {};
+    const filter: any = {};
 
     if (status) {
-      where.status = status;
+      filter.status = status;
     }
 
     if (type) {
-      where.type = type;
+      filter.type = type;
     }
 
-    const bookings = await db.booking.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true
-          }
-        },
-        listing: true,
-        experience: true,
-        service: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+    const bookings = await Booking.find(filter)
+      .populate('user', 'id name email phone')
+      .populate('listing')
+      .populate('experience')
+      .populate('service')
+      .sort({ createdAt: -1 });
 
     return NextResponse.json(bookings);
   } catch (error) {
@@ -49,22 +38,15 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    await connectDB();
     const body = await request.json();
     const { bookingId, status } = body;
 
-    const booking = await db.booking.update({
-      where: { id: bookingId },
-      data: { status },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
-      }
-    });
+    const booking = await Booking.findByIdAndUpdate(
+      bookingId,
+      { status },
+      { new: true }
+    ).populate('user', 'id name email');
 
     return NextResponse.json(booking);
   } catch (error) {

@@ -1,37 +1,23 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import connectDB from '@/lib/mongodb';
+import { Listing, Review } from '@/models';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const property = await db.listing.findUnique({
-      where: { id: params.id },
-      include: {
-        host: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true
-          }
+    await connectDB();
+    const property = await Listing.findById(params.id)
+      .populate('host', 'id name avatar')
+      .populate({
+        path: 'reviews',
+        populate: {
+          path: 'user',
+          select: 'id name avatar'
         },
-        reviews: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                avatar: true
-              }
-            }
-          },
-          orderBy: {
-            createdAt: 'desc'
-          }
-        }
-      }
-    });
+        options: { sort: { createdAt: -1 } }
+      });
 
     if (!property) {
       return NextResponse.json(
@@ -55,20 +41,13 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    await connectDB();
     const body = await request.json();
-    const property = await db.listing.update({
-      where: { id: params.id },
-      data: body,
-      include: {
-        host: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true
-          }
-        }
-      }
-    });
+    const property = await Listing.findByIdAndUpdate(
+      params.id,
+      body,
+      { new: true }
+    ).populate('host', 'id name avatar');
 
     return NextResponse.json(property);
   } catch (error) {
@@ -85,9 +64,8 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await db.listing.delete({
-      where: { id: params.id }
-    });
+    await connectDB();
+    await Listing.findByIdAndDelete(params.id);
 
     return NextResponse.json({ message: 'Property deleted successfully' });
   } catch (error) {

@@ -1,32 +1,25 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import connectDB from '@/lib/mongodb';
+import { User } from '@/models';
 
 export async function GET(request: Request) {
   try {
+    await connectDB();
     const { searchParams } = new URL(request.url);
     const role = searchParams.get('role');
     const status = searchParams.get('status');
 
-    const where: any = {};
+    const filter: any = {};
 
     if (role) {
-      where.role = role;
+      filter.role = role;
     }
 
-    const users = await db.user.findMany({
-      where,
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+    const users = await User.find(filter)
+      .sort({ createdAt: -1 })
+      .select('-password');
 
-    // Remove passwords from response
-    const usersWithoutPasswords = users.map(user => {
-      const { password, ...userWithoutPassword } = user;
-      return userWithoutPassword;
-    });
-
-    return NextResponse.json(usersWithoutPasswords);
+    return NextResponse.json(users);
   } catch (error) {
     console.error('Error fetching users:', error);
     return NextResponse.json(
@@ -38,17 +31,17 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    await connectDB();
     const body = await request.json();
     const { userId, updateData } = body;
 
-    const user = await db.user.update({
-      where: { id: userId },
-      data: updateData
-    });
+    const user = await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true }
+    ).select('-password');
 
-    const { password, ...userWithoutPassword } = user;
-
-    return NextResponse.json(userWithoutPassword);
+    return NextResponse.json(user);
   } catch (error) {
     console.error('Error updating user:', error);
     return NextResponse.json(
@@ -60,12 +53,11 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    await connectDB();
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('id');
 
-    await db.user.delete({
-      where: { id: userId as string }
-    });
+    await User.findByIdAndDelete(userId);
 
     return NextResponse.json({ message: 'User deleted successfully' });
   } catch (error) {

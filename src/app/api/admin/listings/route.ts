@@ -1,33 +1,22 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import connectDB from '@/lib/mongodb';
+import { Listing } from '@/models';
 
 export async function GET(request: Request) {
   try {
+    await connectDB();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
 
-    const where: any = {};
+    const filter: any = {};
 
     if (status && status !== 'all') {
-      where.isActive = status === 'approved';
+      filter.isActive = status === 'approved';
     }
 
-    const listings = await db.listing.findMany({
-      where,
-      include: {
-        host: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+    const listings = await Listing.find(filter)
+      .populate('host', 'id name email phone')
+      .sort({ createdAt: -1 });
 
     return NextResponse.json(listings);
   } catch (error) {
@@ -41,6 +30,7 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    await connectDB();
     const body = await request.json();
     const { listingId, action } = body;
 
@@ -52,19 +42,11 @@ export async function PATCH(request: Request) {
       updateData.isActive = false;
     }
 
-    const listing = await db.listing.update({
-      where: { id: listingId },
-      data: updateData,
-      include: {
-        host: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
-      }
-    });
+    const listing = await Listing.findByIdAndUpdate(
+      listingId,
+      updateData,
+      { new: true }
+    ).populate('host', 'id name email');
 
     return NextResponse.json(listing);
   } catch (error) {
@@ -78,12 +60,11 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    await connectDB();
     const { searchParams } = new URL(request.url);
     const listingId = searchParams.get('id');
 
-    await db.listing.delete({
-      where: { id: listingId as string }
-    });
+    await Listing.findByIdAndDelete(listingId);
 
     return NextResponse.json({ message: 'Listing deleted successfully' });
   } catch (error) {

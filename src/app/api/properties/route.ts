@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import connectDB from '@/lib/mongodb';
+import { Listing } from '@/models';
 
 export async function GET(request: Request) {
   try {
+    await connectDB();
     const { searchParams } = new URL(request.url);
     const city = searchParams.get('city');
     const type = searchParams.get('type');
@@ -10,45 +12,33 @@ export async function GET(request: Request) {
     const maxPrice = searchParams.get('maxPrice');
     const guests = searchParams.get('guests');
 
-    const where: any = {
+    const filter: any = {
       isActive: true
     };
 
     if (city) {
-      where.city = city;
+      filter.city = city;
     }
 
     if (type) {
-      where.type = type;
+      filter.type = type;
     }
 
     if (minPrice || maxPrice) {
-      where.price = {};
-      if (minPrice) where.price.gte = parseFloat(minPrice);
-      if (maxPrice) where.price.lte = parseFloat(maxPrice);
+      filter.price = {};
+      if (minPrice) filter.price.$gte = parseFloat(minPrice);
+      if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
     }
 
     if (guests) {
-      where.maxGuests = {
-        gte: parseInt(guests)
+      filter.maxGuests = {
+        $gte: parseInt(guests)
       };
     }
 
-    const properties = await db.listing.findMany({
-      where,
-      include: {
-        host: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+    const properties = await Listing.find(filter)
+      .populate('host', 'id name avatar')
+      .sort({ createdAt: -1 });
 
     return NextResponse.json(properties);
   } catch (error) {

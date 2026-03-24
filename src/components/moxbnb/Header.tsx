@@ -104,12 +104,17 @@ export default function Header() {
             ) : isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="flex items-center space-x-2 hover:bg-gray-100"
+                    data-testid="user-dropdown-trigger"
+                  >
                     <User className="h-4 w-4" />
                     <span>{user.firstName} {user.lastName}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="z-[9999]" data-testid="user-dropdown-content">
                   <DropdownMenuItem asChild>
                     <Link href="/profile">
                       <User className="mr-2 h-4 w-4" />

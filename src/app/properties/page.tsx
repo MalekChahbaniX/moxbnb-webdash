@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import PropertyCard from '@/components/moxbnb/PropertyCard';
@@ -107,7 +107,7 @@ const allProperties = [
   }
 ];
 
-export default function PropertiesPage() {
+function PropertiesContent() {
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
@@ -285,5 +285,13 @@ export default function PropertiesPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function PropertiesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><p>Chargement...</p></div>}>
+      <PropertiesContent />
+    </Suspense>
   );
 }

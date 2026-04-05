@@ -35,50 +35,142 @@ export default function PropertyDetail() {
   const [isFavorite, setIsFavorite] = useState(false);
 
   // Mock property data - in production, fetch from API
-  const property = {
-    id: params.id,
-    title: 'Appartement de Charme à Sidi Bou Said',
-    type: 'appartment',
-    location: 'Sidi Bou Said, Tunis',
-    price: 350,
-    rating: 4.9,
-    reviews: 127,
-    bedrooms: 2,
-    bathrooms: 1,
-    maxGuests: 4,
-    description: 'Magnifique appartement avec vue mer, décoré dans le style traditionnel tunisien. À 5 minutes de la plage. Idéal pour les couples ou petites familles cherchant une expérience authentique dans un village pittoresque.',
-    houseRules: [
-      'Non fumeur',
-      'Pas de fêtes',
-      'Animaux non autorisés',
-      'Arrivée à partir de 14h00',
-      'Départ avant 11h00'
-    ],
-    amenities: [
-      'WiFi',
-      'Climatisation',
-      'Vue mer',
-      'Cuisine équipée',
-      'Parking',
-      'Machine à laver',
-      'TV',
-      'Fer à repasser'
-    ],
-    images: [
-      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
-      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
-      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800'
-    ],
-    host: {
-      name: 'Fatma Ben Ali',
-      avatar: null,
-      responseRate: 98,
-      responseTime: '1 heure',
-      memberSince: '2023',
-      reviews: 342
+  const allProperties = {
+    '1': {
+      id: '1',
+      title: 'Appartement de Charme à Sidi Bou Said',
+      type: 'Appartement',
+      location: 'Sidi Bou Said, Tunis',
+      price: 350,
+      rating: 4.9,
+      reviews: 127,
+      bedrooms: 2,
+      bathrooms: 1,
+      maxGuests: 4,
+      description: 'Magnifique appartement avec vue mer, décoré dans le style traditionnel tunisien. À 5 minutes de la plage. Idéal pour les couples ou petites familles cherchant une expérience authentique dans un village pittoresque.',
+      houseRules: [
+        'Non fumeur',
+        'Pas de fêtes',
+        'Animaux non autorisés',
+        'Arrivée à partir de 14h00',
+        'Départ avant 11h00'
+      ],
+      amenities: [
+        'WiFi',
+        'Climatisation',
+        'Vue mer',
+        'Cuisine équipée',
+        'Parking',
+        'Machine à laver',
+        'TV',
+        'Fer à repasser'
+      ],
+      images: [
+        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
+        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
+        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
+        'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800'
+      ],
+      host: {
+        name: 'Fatma Ben Ali',
+        avatar: null,
+        responseRate: 98,
+        responseTime: '1 heure',
+        memberSince: '2023',
+        reviews: 342
+      }
+    },
+    '2': {
+      id: '2',
+      title: 'Villa avec Piscine à Hammamet',
+      type: 'Villa',
+      location: 'Hammamet, Nabeul',
+      price: 750,
+      rating: 4.8,
+      reviews: 89,
+      bedrooms: 4,
+      bathrooms: 2,
+      maxGuests: 8,
+      description: 'Superbe villa avec piscine privée et jardin luxuriant. Située dans un quartier résidentiel calme, à proximité des plages et du centre-ville. Parfaite pour les familles et groupes d\'amis.',
+      houseRules: [
+        'Non fumeur',
+        'Pas de fêtes bruyantes',
+        'Animaux autorisés sur demande',
+        'Arrivée à partir de 15h00',
+        'Départ avant 10h00'
+      ],
+      amenities: [
+        'WiFi',
+        'Climatisation',
+        'Piscine privée',
+        'Cuisine équipée',
+        'Parking',
+        'Jardin',
+        'TV',
+        'Barbecue'
+      ],
+      images: [
+        'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800',
+        'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800',
+        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
+        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800'
+      ],
+      host: {
+        name: 'Mohamed Karoui',
+        avatar: null,
+        responseRate: 95,
+        responseTime: '2 heures',
+        memberSince: '2022',
+        reviews: 256
+      }
+    },
+    '3': {
+      id: '3',
+      title: 'Maison Traditionnelle Djerbienne',
+      type: 'Maison',
+      location: 'Djerba, Medenine',
+      price: 280,
+      rating: 4.95,
+      reviews: 203,
+      bedrooms: 3,
+      bathrooms: 1,
+      maxGuests: 6,
+      description: 'Authentique maison djerbienne construite dans le respect des traditions locales. Patio intérieur, architecture typique de l\'île, et ambiance chaleureuse. Expérience unique au cœur de Djerba.',
+      houseRules: [
+        'Non fumeur',
+        'Respect des traditions locales',
+        'Animaux autorisés',
+        'Arrivée à partir de 14h00',
+        'Départ avant 11h00'
+      ],
+      amenities: [
+        'WiFi',
+        'Ventilation naturelle',
+        'Patio',
+        'Cuisine traditionnelle',
+        'Parking',
+        'Machine à laver',
+        'TV',
+        'Espace prière'
+      ],
+      images: [
+        'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800',
+        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
+        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
+        'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800'
+      ],
+      host: {
+        name: 'Youssef Djerbi',
+        avatar: null,
+        responseRate: 99,
+        responseTime: '30 minutes',
+        memberSince: '2021',
+        reviews: 412
+      }
     }
   };
+
+  const property = allProperties[params.id as keyof typeof allProperties] || allProperties['1'];
 
   const getAmenityIcon = (amenity: string) => {
     const iconMap: Record<string, any> = {
@@ -278,11 +370,11 @@ export default function PropertyDetail() {
                         <Users className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">2 voyageurs</span>
                       </div>
-                      <select className="border rounded px-3 py-1 text-sm">
-                        <option>1</option>
-                        <option selected>2</option>
-                        <option>3</option>
-                        <option>4</option>
+                      <select className="border rounded px-3 py-1 text-sm" defaultValue="2">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
                       </select>
                     </div>
                   </div>

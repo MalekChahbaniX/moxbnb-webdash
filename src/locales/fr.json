@@ -43,6 +43,7 @@
     "emailVerified": "Email vérifié",
     "accountType": "Type de compte",
     "guest": "Invité",
+    "client": "Client",
     "host": "Hôte",
     "admin": "Administrateur",
     "myBookings": "Mes Réservations",

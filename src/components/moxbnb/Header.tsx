@@ -32,6 +32,14 @@ export default function Header() {
     document.documentElement.dir = newLang === 'ar' ? 'rtl' : 'ltr';
   };
 
+  const handleLogout = () => {
+    logout();
+  };
+
+  const handleDropdownOpenChange = (open: boolean) => {
+    console.log('Dropdown state:', open);
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
@@ -102,32 +110,21 @@ export default function Header() {
             {loading ? (
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-rose-600"></div>
             ) : isAuthenticated && user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="flex items-center space-x-2 hover:bg-gray-100"
-                    data-testid="user-dropdown-trigger"
-                  >
-                    <User className="h-4 w-4" />
-                    <span>{user.firstName} {user.lastName}</span>
-                  </Button>
+              <DropdownMenu onOpenChange={handleDropdownOpenChange}>
+                <DropdownMenuTrigger className="flex items-center space-x-2 hover:bg-gray-100 px-3 py-2 rounded-md cursor-pointer">
+                  <User className="h-4 w-4" />
+                  <span>{user.firstName} {user.lastName}</span>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="z-[9999]" data-testid="user-dropdown-content">
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile">
-                      <User className="mr-2 h-4 w-4" />
-                      Mon Profil
-                    </Link>
+                <DropdownMenuContent align="end" data-testid="user-dropdown-content">
+                  <DropdownMenuItem onClick={() => console.log('Profile clicked')}>
+                    <User className="mr-2 h-4 w-4" />
+                    Mon Profil
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/bookings">
-                      Mes Réservations
-                    </Link>
+                  <DropdownMenuItem onClick={() => console.log('Bookings clicked')}>
+                    Mes Réservations
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout} className="text-red-600">
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                     <LogOut className="mr-2 h-4 w-4" />
                     Déconnexion
                   </DropdownMenuItem>
@@ -196,7 +193,7 @@ export default function Header() {
                     <User className="h-4 w-4" />
                     <span className="text-sm">{user.firstName} {user.lastName}</span>
                   </div>
-                  <Button onClick={logout} variant="ghost" size="sm" className="w-full text-red-600">
+                  <Button onClick={handleLogout} variant="ghost" size="sm" className="w-full text-red-600">
                     <LogOut className="mr-2 h-4 w-4" />
                     Déconnexion
                   </Button>

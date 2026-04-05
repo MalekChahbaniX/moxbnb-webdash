@@ -40,14 +40,25 @@ export default function LoginPage() {
     try {
       await login(formData.email, formData.password);
       
-      // Redirection selon le rôle
+      // Role-based routing after successful login
       const userStr = localStorage.getItem('user');
       if (userStr) {
         const user = JSON.parse(userStr);
-        if (user.role === 'ADMIN') {
-          router.push('/admin');
-        } else {
-          router.push('/');
+        switch (user.role) {
+          case 'ADMIN':
+            router.push('/admin');
+            break;
+          case 'HOST':
+            router.push('/host/dashboard');
+            break;
+          case 'PROVIDER':
+            router.push('/provider/dashboard');
+            break;
+          case 'CLIENT':
+            router.push('/');
+            break;
+          default:
+            router.push('/');
         }
       } else {
         router.push('/');
@@ -71,6 +82,12 @@ export default function LoginPage() {
           <CardDescription className="text-center">
             {t('auth.login.description')}
           </CardDescription>
+          <div className="text-xs text-center text-gray-500 mt-2">
+            <p>🔐 Admin: malek-admin@moxbnb.com</p>
+            <p>🏠 Host: malek-host@moxbnb.com</p>
+            <p>🛠️ Provider: malek-provider@moxbnb.com</p>
+            <p>👤 Client: Use your registered email</p>
+          </div>
         </CardHeader>
         
         <form onSubmit={handleSubmit}>

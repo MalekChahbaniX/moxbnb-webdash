@@ -1,0 +1,348 @@
+'use client';
+
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { 
+  MessageSquare, 
+  Search, 
+  Send, 
+  Reply, 
+  Star, 
+  Calendar, 
+  Clock,
+  User,
+  Home,
+  Filter,
+  CheckCircle
+} from 'lucide-react';
+
+// Mock data - replace with API call
+const mockConversations = [
+  {
+    id: '1',
+    clientName: 'Mohamed Ben Ali',
+    clientEmail: 'mohamed.benali@email.com',
+    clientAvatar: '/api/placeholder/100/100',
+    propertyTitle: 'Villa de Luxe à Sidi Bou Said',
+    lastMessage: 'Bonjour, je voudrais savoir si la piscine est disponible en janvier?',
+    lastMessageTime: '2024-01-15T14:30:00',
+    unreadCount: 2,
+    status: 'active',
+    bookingId: 'booking-123',
+    rating: null,
+    messages: [
+      {
+        id: '1',
+        sender: 'client',
+        content: 'Bonjour, je suis intéressé par votre villa pour les vacances',
+        timestamp: '2024-01-15T10:00:00',
+        read: true
+      },
+      {
+        id: '2',
+        sender: 'host',
+        content: 'Bonjour Mohamed! La villa est disponible. Quelles dates vous intéressent?',
+        timestamp: '2024-01-15T11:00:00',
+        read: true
+      },
+      {
+        id: '3',
+        sender: 'client',
+        content: 'Bonjour, je voudrais savoir si la piscine est disponible en janvier?',
+        timestamp: '2024-01-15T14:30:00',
+        read: false
+      }
+    ]
+  },
+  {
+    id: '2',
+    clientName: 'Sarra Trabelsi',
+    clientEmail: 'sarra.trabelsi@email.com',
+    clientAvatar: '/api/placeholder/100/100',
+    propertyTitle: 'Appartement Centre Ville',
+    lastMessage: 'Merci beaucoup pour votre réponse rapide!',
+    lastMessageTime: '2024-01-14T16:45:00',
+    unreadCount: 0,
+    status: 'completed',
+    bookingId: 'booking-456',
+    rating: 5,
+    messages: []
+  },
+  {
+    id: '3',
+    clientName: 'Youssef Karray',
+    clientEmail: 'youssef.karray@email.com',
+    clientAvatar: '/api/placeholder/100/100',
+    propertyTitle: 'Studio Coquet Hammamet',
+    lastMessage: 'Est-ce que le Wi-Fi est inclus?',
+    lastMessageTime: '2024-01-13T09:15:00',
+    unreadCount: 1,
+    status: 'pending',
+    bookingId: null,
+    rating: null,
+    messages: []
+  }
+];
+
+export default function HostMessagesPage() {
+  const [conversations, setConversations] = useState(mockConversations);
+  const [selectedConversation, setSelectedConversation] = useState(mockConversations[0]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [newMessage, setNewMessage] = useState('');
+
+  const handleSendMessage = () => {
+    if (!newMessage.trim() || !selectedConversation) return;
+
+    const updatedConversation = {
+      ...selectedConversation,
+      messages: [
+        ...selectedConversation.messages,
+        {
+          id: Date.now().toString(),
+          sender: 'host',
+          content: newMessage,
+          timestamp: new Date().toISOString(),
+          read: true
+        }
+      ],
+      lastMessage: newMessage,
+      lastMessageTime: new Date().toISOString()
+    };
+
+    setConversations(conversations.map(conv =>
+      conv.id === selectedConversation.id ? updatedConversation : conv
+    ));
+    setSelectedConversation(updatedConversation);
+    setNewMessage('');
+  };
+
+  const filteredConversations = conversations.filter(conv => {
+    const matchesSearch = conv.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         conv.propertyTitle.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || conv.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Messages</h1>
+        <p className="text-gray-600">Communiquez avec vos clients</p>
+      </div>
+
+      {/* Filters */}
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Rechercher par client ou propriété..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="w-full md:w-48">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <Filter className="mr-2 h-4 w-4" />
+                  <SelectValue placeholder="Filtrer par statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes les conversations</SelectItem>
+                  <SelectItem value="active">Actives</SelectItem>
+                  <SelectItem value="completed">Complétées</SelectItem>
+                  <SelectItem value="pending">En attente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Conversations List */}
+        <div className="lg:col-span-1">
+          <Card className="h-[600px] overflow-hidden">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <MessageSquare className="mr-2 h-5 w-5" />
+                Conversations
+              </CardTitle>
+              <CardDescription>
+                {filteredConversations.length} conversation(s)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 overflow-y-auto">
+              <div className="space-y-1">
+                {filteredConversations.map((conversation) => (
+                  <div
+                    key={conversation.id}
+                    className={`p-4 border-b cursor-pointer hover:bg-gray-50 transition-colors ${
+                      selectedConversation?.id === conversation.id ? 'bg-rose-50 border-l-4 border-l-rose-500' : ''
+                    }`}
+                    onClick={() => setSelectedConversation(conversation)}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm font-medium text-gray-600">
+                          {conversation.clientName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-sm truncate">
+                            {conversation.clientName}
+                          </h3>
+                          <span className="text-xs text-gray-500">
+                            {new Date(conversation.lastMessageTime).toLocaleDateString('fr-FR')}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 truncate">
+                          {conversation.propertyTitle}
+                        </p>
+                        <p className="text-sm text-gray-700 truncate mt-1">
+                          {conversation.lastMessage}
+                        </p>
+                        <div className="flex items-center justify-between mt-2">
+                          <Badge variant={
+                            conversation.status === 'active' ? 'default' :
+                            conversation.status === 'completed' ? 'secondary' : 'outline'
+                          }>
+                            {conversation.status === 'active' ? 'Active' :
+                             conversation.status === 'completed' ? 'Complétée' : 'En attente'}
+                          </Badge>
+                          {conversation.unreadCount > 0 && (
+                            <span className="bg-rose-500 text-white text-xs px-2 py-1 rounded-full">
+                              {conversation.unreadCount}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Conversation Detail */}
+        <div className="lg:col-span-2">
+          {selectedConversation ? (
+            <Card className="h-[600px] flex flex-col">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                      <span className="text-lg font-medium text-gray-600">
+                        {selectedConversation.clientName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">{selectedConversation.clientName}</h3>
+                      <p className="text-sm text-gray-600">{selectedConversation.clientEmail}</p>
+                      <p className="text-sm text-gray-600">{selectedConversation.propertyTitle}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {selectedConversation.rating && (
+                      <div className="flex items-center">
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span className="ml-1">{selectedConversation.rating}</span>
+                      </div>
+                    )}
+                    {selectedConversation.bookingId && (
+                      <Badge variant="outline">
+                        <Home className="mr-1 h-3 w-3" />
+                        Réservation
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+
+              {/* Messages */}
+              <CardContent className="flex-1 overflow-y-auto p-4">
+                <div className="space-y-4">
+                  {selectedConversation.messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${message.sender === 'host' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={`max-w-[70%] rounded-lg p-3 ${
+                        message.sender === 'host' 
+                          ? 'bg-rose-500 text-white' 
+                          : 'bg-gray-100 text-gray-900'
+                      }`}>
+                        <p className="text-sm">{message.content}</p>
+                        <div className={`flex items-center mt-1 text-xs ${
+                          message.sender === 'host' ? 'text-rose-100' : 'text-gray-500'
+                        }`}>
+                          <Clock className="mr-1 h-3 w-3" />
+                          {new Date(message.timestamp).toLocaleTimeString('fr-FR', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                          {message.sender === 'host' && message.read && (
+                            <CheckCircle className="ml-1 h-3 w-3" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+
+              {/* Message Input */}
+              <CardContent className="p-4 border-t">
+                <div className="flex space-x-2">
+                  <Textarea
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Tapez votre message..."
+                    className="flex-1 min-h-[80px]"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                  />
+                  <Button 
+                    onClick={handleSendMessage}
+                    className="bg-rose-600 hover:bg-rose-700 self-end"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="h-[600px] flex items-center justify-center">
+              <CardContent className="text-center">
+                <MessageSquare className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Sélectionnez une conversation
+                </h3>
+                <p className="text-gray-600">
+                  Choisissez une conversation dans la liste pour commencer à discuter
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

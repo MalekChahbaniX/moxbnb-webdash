@@ -89,11 +89,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     setLoading(true);
     try {
+      // Call logout API first
       await authService.logout();
-      setUser(null);
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Logout API error:', error);
     } finally {
+      // Always clear local state regardless of API success
+      setUser(null);
+      
+      // Clear all storage
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('refreshToken');
+      sessionStorage.removeItem('user');
+      
       setLoading(false);
     }
   };

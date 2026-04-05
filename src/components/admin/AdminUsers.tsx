@@ -54,7 +54,7 @@ export default function AdminUsers() {
       name: 'Mohamed Trabelsi',
       email: 'mohamed@email.com',
       phone: '+216 73 345 678',
-      role: 'traveler',
+      role: 'client',
       status: 'active',
       listingsCount: 0,
       bookingsCount: 8,
@@ -66,7 +66,7 @@ export default function AdminUsers() {
       name: 'Leila Messaoudi',
       email: 'leila@email.com',
       phone: '+216 74 456 789',
-      role: 'serviceProvider',
+      role: 'provider',
       status: 'active',
       listingsCount: 0,
       bookingsCount: 0,
@@ -79,7 +79,7 @@ export default function AdminUsers() {
       name: 'Omar Ben Salah',
       email: 'omar@email.com',
       phone: '+216 75 567 890',
-      role: 'traveler',
+      role: 'client',
       status: 'suspended',
       listingsCount: 0,
       bookingsCount: 3,
@@ -92,10 +92,10 @@ export default function AdminUsers() {
     switch (role) {
       case 'host':
         return <Badge className="bg-purple-100 text-purple-800">Hôte</Badge>;
-      case 'serviceProvider':
+      case 'provider':
         return <Badge className="bg-blue-100 text-blue-800">Prestataire</Badge>;
-      case 'traveler':
-        return <Badge className="bg-green-100 text-green-800">Voyageur</Badge>;
+      case 'client':
+        return <Badge className="bg-green-100 text-green-800">Client</Badge>;
       case 'admin':
         return <Badge className="bg-red-100 text-red-800">Admin</Badge>;
       default:
@@ -159,9 +159,9 @@ export default function AdminUsers() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les rôles</SelectItem>
-                  <SelectItem value="traveler">Voyageurs</SelectItem>
+                  <SelectItem value="client">Clients</SelectItem>
                   <SelectItem value="host">Hôtes</SelectItem>
-                  <SelectItem value="serviceProvider">Prestataires</SelectItem>
+                  <SelectItem value="provider">Prestataires</SelectItem>
                   <SelectItem value="admin">Admins</SelectItem>
                 </SelectContent>
               </Select>
@@ -198,7 +198,7 @@ export default function AdminUsers() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Voyageurs</p>
+                <p className="text-sm text-muted-foreground">Clients</p>
                 <p className="text-2xl font-bold text-green-600">1,458</p>
               </div>
               <User className="h-8 w-8 text-green-600" />

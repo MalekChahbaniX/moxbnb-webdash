@@ -68,7 +68,7 @@ export default function ProfilePage() {
                   <CardDescription className="flex items-center mt-1">
                     <Shield className="h-4 w-4 mr-1" />
                     {user.role === 'ADMIN' ? t('profile.admin') : 
-                     user.role === 'HOST' ? t('profile.host') : t('profile.guest')}
+                     user.role === 'HOST' ? t('profile.host') : t('profile.client')}
                   </CardDescription>
                 </div>
               </div>
@@ -150,7 +150,7 @@ export default function ProfilePage() {
                   <span className="text-gray-600">{t('profile.accountType')}</span>
                   <Badge variant="outline">
                     {user.role === 'ADMIN' ? t('profile.admin') : 
-                     user.role === 'HOST' ? t('profile.host') : t('profile.guest')}
+                     user.role === 'HOST' ? t('profile.host') : t('profile.client')}
                   </Badge>
                 </div>
               </div>

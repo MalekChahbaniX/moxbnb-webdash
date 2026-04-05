@@ -3,7 +3,7 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 // API base URL - change this to match your backend
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'https://moxbnb-back.onrender.com/api'
-  : 'http://localhost:3002/api';
+  : 'https://moxbnb-back.onrender.com/api';
 
 // Create axios instance with default configuration
 const apiClient: AxiosInstance = axios.create({

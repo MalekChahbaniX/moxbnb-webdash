@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   MapPin, 
@@ -19,64 +19,60 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { api } from '@/lib/api';
 
 export default function ExperienceDetail() {
   const params = useParams();
   const router = useRouter();
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [experience, setExperience] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock experience data
-  const experience = {
-    id: params.id,
-    title: 'Dégustation de Cuisine Traditionnelle Tunisienne',
-    category: 'Culinaire',
-    location: 'Tunis, Tunisie',
-    price: 150,
-    duration: '4 heures',
-    maxGuests: 8,
-    rating: 4.9,
-    reviews: 234,
-    description: 'Apprenez à préparer les plats tunisiens emblématiques comme le couscous, le tajine et les briks avec une chef locale experte. Cette expérience culinaire vous emmènera dans un voyage authentique à travers les saveurs de la Tunisie. Vous découvrirez les secrets de la cuisine traditionnelle tout en dégustant vos créations.',
-    requirements: [
-      'Aucun niveau requis',
-      'Vêtements confortables recommandés',
-      'Informez-nous des allergies alimentaires',
-      'Disponible en français et en arabe'
-    ],
-    whatYouWillDo: [
-      'Découverte des épices tunisiennes',
-      'Préparation de 3 plats traditionnels',
-      'Dégustation de vos créations',
-      'Livret de recettes à emporter',
-      'Photos de votre expérience'
-    ],
-    whatIsIncluded: [
-      'Ingrédients frais et locaux',
-      'Équipement de cuisine complet',
-      'Livret de recettes',
-      'Boissons et collations',
-      'Certificat de participation'
-    ],
-    images: [
-      'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800',
-      'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800',
-      'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&auto=format&fit=crop&w=400',
-      'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800'
-    ],
-    host: {
-      name: 'Fatma Ben Ali',
-      avatar: null,
-      responseRate: 99,
-      responseTime: '30 min',
-      memberSince: '2022',
-      reviews: 567,
-      superhost: true
+  useEffect(() => {
+    const fetchExperience = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get(`/experiences/${params.id}`);
+        setExperience(response.data?.data || response.data);
+      } catch (err) {
+        console.error('Error fetching experience:', err);
+        setError('Failed to load experience');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (params.id) {
+      fetchExperience();
     }
-  };
+  }, [params.id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mx-auto mb-4"></div>
+          <p>Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !experience) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error || 'Experience not found'}</p>
+          <Button onClick={() => router.back()}>Retour</Button>
+        </div>
+      </div>
+    );
+  }
 
   const handleBooking = () => {
-    console.log('Booking experience:', experience.id);
+    console.log('Booking experience:', experience._id);
   };
 
   return (
@@ -104,13 +100,13 @@ export default function ExperienceDetail() {
             <div className="grid grid-cols-2 gap-2">
               <div className="col-span-2 row-span-2">
                 <img
-                  src={experience.images[selectedImage]}
+                  src={experience.images?.[selectedImage] || '/api/placeholder/800/600'}
                   alt={experience.title}
                   className="w-full h-96 object-cover rounded-lg cursor-pointer"
                   onClick={() => setSelectedImage(0)}
                 />
               </div>
-              {experience.images.slice(1).map((image, index) => (
+              {experience.images?.slice(1).map((image: string, index: number) => (
                 <img
                   key={index}
                   src={image}
@@ -161,7 +157,7 @@ export default function ExperienceDetail() {
             <div>
               <h2 className="text-xl font-semibold mb-4">Ce que vous ferez</h2>
               <ul className="space-y-3">
-                {experience.whatYouWillDo.map((item, index) => (
+                {(experience.whatYouWillDo || []).map((item: string, index: number) => (
                   <li key={index} className="flex items-start space-x-2">
                     <CheckCircle className="h-5 w-5 text-rose-600 flex-shrink-0 mt-0.5" />
                     <span className="text-muted-foreground">{item}</span>
@@ -174,7 +170,7 @@ export default function ExperienceDetail() {
             <div>
               <h2 className="text-xl font-semibold mb-4">Ce qui est inclus</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {experience.whatIsIncluded.map((item, index) => (
+                {(experience.whatIsIncluded || []).map((item: string, index: number) => (
                   <div key={index} className="flex items-center space-x-2 p-3 border rounded-lg">
                     <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
                     <span className="text-sm">{item}</span>
@@ -189,7 +185,7 @@ export default function ExperienceDetail() {
             <div>
               <h2 className="text-xl font-semibold mb-4">À savoir avant de réserver</h2>
               <ul className="space-y-2">
-                {experience.requirements.map((req, index) => (
+                {(experience.requirements || []).map((req: string, index: number) => (
                   <li key={index} className="flex items-start space-x-2">
                     <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                     <span className="text-muted-foreground">{req}</span>
@@ -274,7 +270,7 @@ export default function ExperienceDetail() {
                 {/* Host Info */}
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
-                    {experience.host.superhost && (
+                    {experience.host?.superhost && (
                       <Badge className="bg-purple-100 text-purple-800">
                         <Award className="h-3 w-3 mr-1" />
                         Superhôte
@@ -287,22 +283,22 @@ export default function ExperienceDetail() {
                       <User className="h-6 w-6 text-rose-600" />
                     </div>
                     <div>
-                      <p className="font-medium">{experience.host.name}</p>
-                      <p className="text-sm text-muted-foreground">Membre depuis {experience.host.memberSince}</p>
+                      <p className="font-medium">{experience.host?.name || 'Hôte'}</p>
+                      <p className="text-sm text-muted-foreground">Membre depuis {experience.host?.memberSince || 'N/A'}</p>
                     </div>
                   </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Taux de réponse</span>
-                      <span className="font-medium">{experience.host.responseRate}%</span>
+                      <span className="font-medium">{experience.host?.responseRate || 'N/A'}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Temps de réponse</span>
-                      <span className="font-medium">{experience.host.responseTime}</span>
+                      <span className="font-medium">{experience.host?.responseTime || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Avis reçus</span>
-                      <span className="font-medium">{experience.host.reviews}</span>
+                      <span className="font-medium">{experience.host?.reviews || 'N/A'}</span>
                     </div>
                   </div>
                   <Button variant="outline" className="w-full">

@@ -1,66 +1,76 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Home, Calendar, Users, Star, TrendingUp, Plus, Eye } from 'lucide-react';
+import { Home, Calendar, Users, Star, TrendingUp, Plus, Eye, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-
-// Mock data - replace with real API calls
-const mockStats = {
-  totalListings: 12,
-  activeListings: 8,
-  totalBookings: 45,
-  monthlyRevenue: 8750,
-  averageRating: 4.8,
-  occupancyRate: 78
-};
-
-const mockListings = [
-  {
-    id: '1',
-    title: 'Villa de Luxe à Sidi Bou Said',
-    status: 'active',
-    bookings: 12,
-    revenue: 2400,
-    rating: 4.9,
-    image: '/api/placeholder/300/200'
-  },
-  {
-    id: '2', 
-    title: 'Appartement Centre Ville',
-    status: 'active',
-    bookings: 8,
-    revenue: 1600,
-    rating: 4.7,
-    image: '/api/placeholder/300/200'
-  },
-  {
-    id: '3',
-    title: 'Studio Coquet Hammamet',
-    status: 'inactive',
-    bookings: 0,
-    revenue: 0,
-    rating: 4.5,
-    image: '/api/placeholder/300/200'
-  }
-];
+import { fetchHostDashboard, resolveMediaUrl } from '@/services/hostService';
 
 export default function HostDashboard() {
-  const [stats, setStats] = useState(mockStats);
-  const [listings, setListings] = useState(mockListings);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [listingPreviews, setListingPreviews] = useState<any[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await fetchHostDashboard();
+        if (cancelled) return;
+        setAnalytics(data.analytics);
+        setListingPreviews(data.listingPreviews || []);
+        setError(null);
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || 'Impossible de charger le tableau de bord');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center gap-2 text-gray-600">
+        <Loader2 className="h-8 w-8 animate-spin text-rose-600" />
+        <span>Chargement…</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-red-800">
+        <p className="font-medium">{error}</p>
+        <p className="mt-2 text-sm">Vérifiez que le backend tourne et que vous êtes connecté en tant qu&apos;hôte.</p>
+      </div>
+    );
+  }
+
+  const a = analytics || {};
+  const totalListings = a.totalListings ?? 0;
+  const activeListings = a.activeListings ?? 0;
+  const totalBookings = a.totalBookings ?? 0;
+  const monthlyBookings = a.monthlyBookings ?? 0;
+  const monthlyRevenue = a.monthlyRevenue ?? 0;
+  const averageRating = a.averageRating ?? 0;
+  const totalReviews = a.totalReviews ?? 0;
+  const occupancyRate = a.occupancyRate ?? 0;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Tableau de Bord Hôte</h1>
         <p className="text-gray-600">Gérez vos propriétés et vos réservations</p>
       </div>
 
-      {/* Quick Actions */}
-      <div className="flex gap-4 mb-8">
+      <div className="flex gap-4 mb-8 flex-wrap">
         <Link href="/host/listings/new">
           <Button className="bg-rose-600 hover:bg-rose-700">
             <Plus className="mr-2 h-4 w-4" />
@@ -81,7 +91,6 @@ export default function HostDashboard() {
         </Link>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -89,99 +98,89 @@ export default function HostDashboard() {
             <Home className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalListings}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.activeListings} actives
-            </p>
+            <div className="text-2xl font-bold">{totalListings}</div>
+            <p className="text-xs text-muted-foreground">{activeListings} publiées</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Réservations Totales</CardTitle>
+            <CardTitle className="text-sm font-medium">Réservations</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalBookings}</div>
-            <p className="text-xs text-muted-foreground">
-              Ce mois
-            </p>
+            <div className="text-2xl font-bold">{totalBookings}</div>
+            <p className="text-xs text-muted-foreground">{monthlyBookings} ce mois-ci</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenus Mensuels</CardTitle>
+            <CardTitle className="text-sm font-medium">Revenus ce mois</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.monthlyRevenue.toLocaleString()} TND</div>
-            <p className="text-xs text-muted-foreground">
-              +12% par rapport au mois dernier
-            </p>
+            <div className="text-2xl font-bold">{Number(monthlyRevenue).toLocaleString()} TND</div>
+            <p className="text-xs text-muted-foreground">Réservations créées ce mois</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Note Moyenne</CardTitle>
+            <CardTitle className="text-sm font-medium">Note moyenne</CardTitle>
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.averageRating}</div>
-            <p className="text-xs text-muted-foreground">
-              Basé sur {stats.totalBookings} avis
-            </p>
+            <div className="text-2xl font-bold">{averageRating}</div>
+            <p className="text-xs text-muted-foreground">Sur {totalReviews} avis</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taux d'Occupation</CardTitle>
+            <CardTitle className="text-sm font-medium">Taux d&apos;occupation</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.occupancyRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              Ce mois
-            </p>
+            <div className="text-2xl font-bold">{occupancyRate}%</div>
+            <p className="text-xs text-muted-foreground">Estimation (nuits réservées / capacité du mois)</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Listings */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Vos Propriétés</CardTitle>
-              <CardDescription>
-                Gérez vos annonces immobilières
-              </CardDescription>
+              <CardTitle>Vos propriétés</CardTitle>
+              <CardDescription>Annonces récentes et indicateurs</CardDescription>
             </div>
             <Link href="/host/listings">
               <Button variant="outline" size="sm">
                 <Eye className="mr-2 h-4 w-4" />
-                Voir Tout
+                Voir tout
               </Button>
             </Link>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {listings.map((listing) => (
+            {listingPreviews.length === 0 && (
+              <p className="text-sm text-gray-600">Aucune propriété pour le moment.</p>
+            )}
+            {listingPreviews.map((listing) => (
               <div key={listing.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center space-x-4">
-                  <img 
-                    src={listing.image} 
+                  <img
+                    src={resolveMediaUrl(listing.image)}
                     alt={listing.title}
-                    className="w-16 h-16 rounded-lg object-cover"
+                    className="w-16 h-16 rounded-lg object-cover bg-gray-100"
                   />
                   <div>
                     <h3 className="font-semibold">{listing.title}</h3>
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span>{listing.rating}</span>
+                      <span>{listing.rating || '—'}</span>
                       <span>•</span>
                       <span>{listing.bookings} réservations</span>
                     </div>
@@ -189,11 +188,9 @@ export default function HostDashboard() {
                 </div>
                 <div className="text-right">
                   <Badge variant={listing.status === 'active' ? 'default' : 'secondary'}>
-                    {listing.status === 'active' ? 'Actif' : 'Inactif'}
+                    {listing.status === 'active' ? 'Actif' : listing.status === 'pending' ? 'Brouillon' : 'Inactif'}
                   </Badge>
-                  <div className="text-sm font-medium mt-1">
-                    {listing.revenue.toLocaleString()} TND
-                  </div>
+                  <div className="text-sm font-medium mt-1">{Number(listing.revenue).toLocaleString()} TND</div>
                 </div>
               </div>
             ))}

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { Shield, User, Search, Filter, MoreVertical } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { User, Search, MoreVertical, Loader2, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select,
   SelectContent,
@@ -19,74 +20,81 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { getAllUsers, banUser, unbanUser, updateUserRole } from '@/services/adminService';
 
 export default function AdminUsers() {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actioningUser, setActioningUser] = useState<string | null>(null);
 
-  const mockUsers = [
-    {
-      id: 'USR-001',
-      name: 'Fatma Ben Ali',
-      email: 'fatma@email.com',
-      phone: '+216 71 123 456',
-      role: 'host',
-      status: 'active',
-      listingsCount: 5,
-      bookingsCount: 0,
-      joinedAt: '2024-08-15',
-      lastLogin: '2025-01-12 14:30'
-    },
-    {
-      id: 'USR-002',
-      name: 'Ahmed Kaddour',
-      email: 'ahmed@email.com',
-      phone: '+216 72 234 567',
-      role: 'host',
-      status: 'active',
-      listingsCount: 3,
-      bookingsCount: 2,
-      joinedAt: '2024-09-20',
-      lastLogin: '2025-01-11 09:15'
-    },
-    {
-      id: 'USR-003',
-      name: 'Mohamed Trabelsi',
-      email: 'mohamed@email.com',
-      phone: '+216 73 345 678',
-      role: 'client',
-      status: 'active',
-      listingsCount: 0,
-      bookingsCount: 8,
-      joinedAt: '2024-10-05',
-      lastLogin: '2025-01-12 16:45'
-    },
-    {
-      id: 'USR-004',
-      name: 'Leila Messaoudi',
-      email: 'leila@email.com',
-      phone: '+216 74 456 789',
-      role: 'provider',
-      status: 'active',
-      listingsCount: 0,
-      bookingsCount: 0,
-      servicesCount: 2,
-      joinedAt: '2024-11-12',
-      lastLogin: '2025-01-10 11:20'
-    },
-    {
-      id: 'USR-005',
-      name: 'Omar Ben Salah',
-      email: 'omar@email.com',
-      phone: '+216 75 567 890',
-      role: 'client',
-      status: 'suspended',
-      listingsCount: 0,
-      bookingsCount: 3,
-      joinedAt: '2024-07-25',
-      lastLogin: '2025-01-05 08:00'
+  useEffect(() => {
+    loadUsers();
+  }, [selectedFilter]);
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const filters: any = {};
+      if (selectedFilter !== 'all') filters.role = selectedFilter;
+      const response = await getAllUsers(filters);
+      if (response.success) {
+        setUsers(response.data);
+      } else {
+        setError('Erreur lors du chargement des utilisateurs');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const handleBanUser = async (userId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir bannir cet utilisateur ?')) return;
+    try {
+      setActioningUser(userId);
+      const response = await banUser(userId, "Violation des conditions d'utilisation");
+      if (response.success) {
+        setUsers(users.map(u => u._id === userId ? { ...u, status: 'banned' } : u));
+      }
+    } catch (err) {
+      setError('Erreur lors du bannissement');
+    } finally {
+      setActioningUser(null);
+    }
+  };
+
+  const handleUnbanUser = async (userId: string) => {
+    try {
+      setActioningUser(userId);
+      const response = await unbanUser(userId);
+      if (response.success) {
+        setUsers(users.map(u => u._id === userId ? response.data : u));
+      }
+    } catch (err) {
+      setError('Erreur lors du débannissement');
+    } finally {
+      setActioningUser(null);
+    }
+  };
+
+  const handleChangeRole = async (userId: string, newRole: string) => {
+    try {
+      setActioningUser(userId);
+      const response = await updateUserRole(userId, newRole);
+      if (response.success) {
+        setUsers(users.map(u => u._id === userId ? response.data : u));
+      }
+    } catch (err) {
+      setError('Erreur lors de la modification du rôle');
+    } finally {
+      setActioningUser(null);
+    }
+  };
 
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -94,8 +102,8 @@ export default function AdminUsers() {
         return <Badge className="bg-purple-100 text-purple-800">Hôte</Badge>;
       case 'provider':
         return <Badge className="bg-blue-100 text-blue-800">Prestataire</Badge>;
-      case 'client':
-        return <Badge className="bg-green-100 text-green-800">Client</Badge>;
+      case 'user':
+        return <Badge className="bg-green-100 text-green-800">Utilisateur</Badge>;
       case 'admin':
         return <Badge className="bg-red-100 text-red-800">Admin</Badge>;
       default:
@@ -107,8 +115,10 @@ export default function AdminUsers() {
     switch (status) {
       case 'active':
         return <Badge className="bg-green-100 text-green-800">Actif</Badge>;
+      case 'banned':
+        return <Badge className="bg-red-100 text-red-800">Banni</Badge>;
       case 'suspended':
-        return <Badge className="bg-red-100 text-red-800">Suspendu</Badge>;
+        return <Badge className="bg-orange-100 text-orange-800">Suspendu</Badge>;
       case 'pending':
         return <Badge className="bg-yellow-100 text-yellow-800">En attente</Badge>;
       default:
@@ -116,17 +126,17 @@ export default function AdminUsers() {
     }
   };
 
-  const handleSuspendUser = (userId: string) => {
-    if (confirm('Êtes-vous sûr de vouloir suspendre cet utilisateur ?')) {
-      console.log('Suspending user:', userId);
-      // API call to suspend user
-    }
-  };
+  const filteredUsers = users.filter(u =>
+    `${u.name} ${u.email}`.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const handleActivateUser = (userId: string) => {
-    console.log('Activating user:', userId);
-    // API call to activate user
-  };
+  if (loading && users.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -137,15 +147,22 @@ export default function AdminUsers() {
         </p>
       </div>
 
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Search and Filters */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  placeholder="Rechercher par nom, email ou téléphone..."
+                  placeholder="Rechercher par nom, email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -159,7 +176,7 @@ export default function AdminUsers() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les rôles</SelectItem>
-                  <SelectItem value="client">Clients</SelectItem>
+                  <SelectItem value="user">Utilisateurs</SelectItem>
                   <SelectItem value="host">Hôtes</SelectItem>
                   <SelectItem value="provider">Prestataires</SelectItem>
                   <SelectItem value="admin">Admins</SelectItem>
@@ -170,142 +187,99 @@ export default function AdminUsers() {
         </CardContent>
       </Card>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Utilisateurs</p>
-                <p className="text-2xl font-bold">2,458</p>
-              </div>
-              <User className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Hôtes</p>
-                <p className="text-2xl font-bold text-purple-600">856</p>
-              </div>
-              <Shield className="h-8 w-8 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Clients</p>
-                <p className="text-2xl font-bold text-green-600">1,458</p>
-              </div>
-              <User className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Prestataires</p>
-                <p className="text-2xl font-bold text-blue-600">144</p>
-              </div>
-              <Shield className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Users Table */}
+      {/* Users List */}
       <Card>
         <CardHeader>
-          <CardTitle>Liste des Utilisateurs</CardTitle>
+          <CardTitle>Liste des Utilisateurs ({filteredUsers.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {mockUsers.map((user) => (
-              <div key={user.id} className="p-4 border rounded-lg hover:bg-gray-50">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center">
-                        <User className="h-6 w-6 text-rose-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold mb-1">{user.name}</h3>
-                        <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                          <div>
-                            <span className="font-medium">Email:</span> {user.email}
-                          </div>
-                          <div>
-                            <span className="font-medium">Tél:</span> {user.phone}
-                          </div>
-                          <div>
-                            <span className="font-medium">ID:</span> {user.id}
-                          </div>
-                          <div>
-                            <span className="font-medium">Inscrit le:</span> {user.joinedAt}
-                          </div>
+          {filteredUsers.length > 0 ? (
+            <div className="space-y-4">
+              {filteredUsers.map((user) => (
+                <div key={user._id} className="p-4 border rounded-lg hover:bg-gray-50">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center">
+                          <User className="h-6 w-6 text-rose-600" />
                         </div>
-                        <div className="flex items-center gap-2 mt-2">
-                          {getRoleBadge(user.role)}
-                          {getStatusBadge(user.status)}
+                        <div className="flex-1">
+                          <h3 className="font-semibold mb-1">{user.name}</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                            <div>
+                              <span className="font-medium">Email:</span> {user.email}
+                            </div>
+                            <div>
+                              <span className="font-medium">Tél:</span> {user.phone || 'N/A'}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 mt-2">
+                            {getRoleBadge(user.role)}
+                            {getStatusBadge(user.status)}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <div className="text-right hidden md:block">
-                      <p className="text-sm text-muted-foreground">
-                        {user.role === 'host' ? `${user.listingsCount} annonces` : 
-                         user.role === 'serviceProvider' ? `${user.servicesCount} services` :
-                         `${user.bookingsCount} réservations`}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Dernière connexion: {user.lastLogin}
-                      </p>
+
+                    <div className="flex items-center gap-3">
+                      {user.createdAt && (
+                        <div className="text-right hidden md:block text-sm">
+                          <p className="text-muted-foreground">
+                            Inscrit: {new Date(user.createdAt).toLocaleDateString('fr-TN')}
+                          </p>
+                        </div>
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" disabled={actioningUser === user._id}>
+                            {actioningUser === user._id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <MoreVertical className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {user.status === 'active' ? (
+                            <DropdownMenuItem
+                              onClick={() => handleBanUser(user._id)}
+                              className="text-red-600"
+                            >
+                              Bannir le compte
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => handleUnbanUser(user._id)}
+                              className="text-green-600"
+                            >
+                              Débannir le compte
+                            </DropdownMenuItem>
+                          )}
+                          {user.role !== 'admin' && (
+                            <>
+                              <DropdownMenuItem onClick={() => handleChangeRole(user._id, 'user')}>
+                                Changer en Utilisateur
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleChangeRole(user._id, 'host')}>
+                                Changer en Hôte
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleChangeRole(user._id, 'provider')}>
+                                Changer en Prestataire
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          Voir le profil
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          Modifier les informations
-                        </DropdownMenuItem>
-                        {user.status === 'active' ? (
-                          <DropdownMenuItem 
-                            onClick={() => handleSuspendUser(user.id)}
-                            className="text-red-600"
-                          >
-                            Suspendre le compte
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem 
-                            onClick={() => handleActivateUser(user.id)}
-                            className="text-green-600"
-                          >
-                            Réactiver le compte
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem className="text-red-600">
-                          Supprimer le compte
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Aucun utilisateur trouvé</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { addDays, format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { 
   MapPin, 
   Star, 
@@ -9,7 +11,7 @@ import {
   Home, 
   Bath, 
   Bed, 
-  Calendar, 
+  Calendar as CalendarIcon, 
   Share2,
   Heart,
   CheckCircle,
@@ -25,7 +27,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { api } from '@/lib/api';
 
 export default function PropertyDetail() {
   const params = useParams();
@@ -33,144 +38,55 @@ export default function PropertyDetail() {
   const { t } = useLanguage();
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [checkIn, setCheckIn] = useState<Date | undefined>(new Date());
+  const [checkOut, setCheckOut] = useState<Date | undefined>(addDays(new Date(), 5));
+  const [guests, setGuests] = useState(2);
+  const [isCheckInOpen, setIsCheckInOpen] = useState(false);
+  const [isCheckOutOpen, setIsCheckOutOpen] = useState(false);
+  const [property, setProperty] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock property data - in production, fetch from API
-  const allProperties = {
-    '1': {
-      id: '1',
-      title: 'Appartement de Charme à Sidi Bou Said',
-      type: 'Appartement',
-      location: 'Sidi Bou Said, Tunis',
-      price: 350,
-      rating: 4.9,
-      reviews: 127,
-      bedrooms: 2,
-      bathrooms: 1,
-      maxGuests: 4,
-      description: 'Magnifique appartement avec vue mer, décoré dans le style traditionnel tunisien. À 5 minutes de la plage. Idéal pour les couples ou petites familles cherchant une expérience authentique dans un village pittoresque.',
-      houseRules: [
-        'Non fumeur',
-        'Pas de fêtes',
-        'Animaux non autorisés',
-        'Arrivée à partir de 14h00',
-        'Départ avant 11h00'
-      ],
-      amenities: [
-        'WiFi',
-        'Climatisation',
-        'Vue mer',
-        'Cuisine équipée',
-        'Parking',
-        'Machine à laver',
-        'TV',
-        'Fer à repasser'
-      ],
-      images: [
-        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
-        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
-        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
-        'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800'
-      ],
-      host: {
-        name: 'Fatma Ben Ali',
-        avatar: null,
-        responseRate: 98,
-        responseTime: '1 heure',
-        memberSince: '2023',
-        reviews: 342
+  useEffect(() => {
+    const fetchProperty = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get(`/listings/${params.id}`);
+        setProperty(response.data?.data || response.data);
+      } catch (err) {
+        console.error('Error fetching property:', err);
+        setError('Failed to load property');
+      } finally {
+        setLoading(false);
       }
-    },
-    '2': {
-      id: '2',
-      title: 'Villa avec Piscine à Hammamet',
-      type: 'Villa',
-      location: 'Hammamet, Nabeul',
-      price: 750,
-      rating: 4.8,
-      reviews: 89,
-      bedrooms: 4,
-      bathrooms: 2,
-      maxGuests: 8,
-      description: 'Superbe villa avec piscine privée et jardin luxuriant. Située dans un quartier résidentiel calme, à proximité des plages et du centre-ville. Parfaite pour les familles et groupes d\'amis.',
-      houseRules: [
-        'Non fumeur',
-        'Pas de fêtes bruyantes',
-        'Animaux autorisés sur demande',
-        'Arrivée à partir de 15h00',
-        'Départ avant 10h00'
-      ],
-      amenities: [
-        'WiFi',
-        'Climatisation',
-        'Piscine privée',
-        'Cuisine équipée',
-        'Parking',
-        'Jardin',
-        'TV',
-        'Barbecue'
-      ],
-      images: [
-        'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800',
-        'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800',
-        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
-        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800'
-      ],
-      host: {
-        name: 'Mohamed Karoui',
-        avatar: null,
-        responseRate: 95,
-        responseTime: '2 heures',
-        memberSince: '2022',
-        reviews: 256
-      }
-    },
-    '3': {
-      id: '3',
-      title: 'Maison Traditionnelle Djerbienne',
-      type: 'Maison',
-      location: 'Djerba, Medenine',
-      price: 280,
-      rating: 4.95,
-      reviews: 203,
-      bedrooms: 3,
-      bathrooms: 1,
-      maxGuests: 6,
-      description: 'Authentique maison djerbienne construite dans le respect des traditions locales. Patio intérieur, architecture typique de l\'île, et ambiance chaleureuse. Expérience unique au cœur de Djerba.',
-      houseRules: [
-        'Non fumeur',
-        'Respect des traditions locales',
-        'Animaux autorisés',
-        'Arrivée à partir de 14h00',
-        'Départ avant 11h00'
-      ],
-      amenities: [
-        'WiFi',
-        'Ventilation naturelle',
-        'Patio',
-        'Cuisine traditionnelle',
-        'Parking',
-        'Machine à laver',
-        'TV',
-        'Espace prière'
-      ],
-      images: [
-        'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800',
-        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
-        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
-        'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800'
-      ],
-      host: {
-        name: 'Youssef Djerbi',
-        avatar: null,
-        responseRate: 99,
-        responseTime: '30 minutes',
-        memberSince: '2021',
-        reviews: 412
-      }
+    };
+
+    if (params.id) {
+      fetchProperty();
     }
-  };
+  }, [params.id]);
 
-  const property = allProperties[params.id as keyof typeof allProperties] || allProperties['1'];
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mx-auto mb-4"></div>
+          <p>Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !property) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error || 'Property not found'}</p>
+          <Button onClick={() => router.back()}>Retour</Button>
+        </div>
+      </div>
+    );
+  }
 
   const getAmenityIcon = (amenity: string) => {
     const iconMap: Record<string, any> = {
@@ -184,13 +100,17 @@ export default function PropertyDetail() {
   };
 
   const handleBooking = () => {
-    // Navigate to booking page or open booking modal
-    console.log('Booking property:', property.id);
+    if (!checkIn || !checkOut) {
+      alert('Veuillez sélectionner vos dates');
+      return;
+    }
+    // Navigate to booking confirmation page
+    router.push(`/bookings/confirm?propertyId=${property._id}&checkIn=${checkIn.toISOString()}&checkOut=${checkOut.toISOString()}&guests=${guests}`);
   };
 
   const handleContactHost = () => {
     // Open contact modal
-    console.log('Contacting host:', property.host.name);
+    console.log('Contacting host:', property.host?.name);
   };
 
   return (
@@ -218,13 +138,13 @@ export default function PropertyDetail() {
             <div className="grid grid-cols-2 gap-2">
               <div className="col-span-2 row-span-2">
                 <img
-                  src={property.images[selectedImage]}
+                  src={property.images?.[selectedImage] || '/api/placeholder/800/600'}
                   alt={property.title}
                   className="w-full h-96 object-cover rounded-lg cursor-pointer"
                   onClick={() => setSelectedImage(0)}
                 />
               </div>
-              {property.images.slice(1).map((image, index) => (
+              {property.images?.slice(1).map((image: string, index: number) => (
                 <img
                   key={index}
                   src={image}
@@ -278,7 +198,7 @@ export default function PropertyDetail() {
             <div>
               <h2 className="text-xl font-semibold mb-4">Ce que propose ce logement</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {property.amenities.map((amenity, index) => {
+                {(property.amenities || []).map((amenity: string, index: number) => {
                   const Icon = getAmenityIcon(amenity);
                   return (
                     <div key={index} className="flex items-center space-x-2">
@@ -321,7 +241,7 @@ export default function PropertyDetail() {
             <div>
               <h2 className="text-xl font-semibold mb-4">Règles de la maison</h2>
               <ul className="space-y-2">
-                {property.houseRules.map((rule, index) => (
+                {(property.houseRules || []).map((rule: string, index: number) => (
                   <li key={index} className="flex items-start space-x-2">
                     <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                     <span className="text-muted-foreground">{rule}</span>
@@ -333,7 +253,7 @@ export default function PropertyDetail() {
 
           {/* Right Column - Booking Card */}
           <div className="lg:col-span-1">
-            <Card className="sticky top-4">
+            <Card className="sticky top-4 z-40">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -350,16 +270,54 @@ export default function PropertyDetail() {
                   <div className="border rounded-lg p-3">
                     <label className="block text-sm font-medium mb-2">Dates</label>
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="border rounded p-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground mb-1" />
-                        <p className="text-sm text-muted-foreground">Arrivée</p>
-                        <p className="text-sm font-medium">15 Jan 2025</p>
-                      </div>
-                      <div className="border rounded p-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground mb-1" />
-                        <p className="text-sm text-muted-foreground">Départ</p>
-                        <p className="text-sm font-medium">20 Jan 2025</p>
-                      </div>
+                      <Popover open={isCheckInOpen} onOpenChange={setIsCheckInOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal h-12"
+                            id="check-in-trigger"
+                          >
+                            <CalendarIcon className="h-4 w-4 mr-2" />
+                            {checkIn ? format(checkIn, 'dd MMM yyyy', { locale: fr }) : "Arrivée"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start" side="bottom">
+                          <Calendar
+                            mode="single"
+                            selected={checkIn}
+                            onSelect={(date) => {
+                              setCheckIn(date);
+                              setIsCheckInOpen(false);
+                            }}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <Popover open={isCheckOutOpen} onOpenChange={setIsCheckOutOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal h-12"
+                            id="check-out-trigger"
+                          >
+                            <CalendarIcon className="h-4 w-4 mr-2" />
+                            {checkOut ? format(checkOut, 'dd MMM yyyy', { locale: fr }) : "Départ"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start" side="bottom">
+                          <Calendar
+                            mode="single"
+                            selected={checkOut}
+                            onSelect={(date) => {
+                              setCheckOut(date);
+                              setIsCheckOutOpen(false);
+                            }}
+                            disabled={(date) => !checkIn || date < checkIn}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
 
@@ -368,13 +326,21 @@ export default function PropertyDetail() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">2 voyageurs</span>
+                        <span className="text-sm">{guests} voyageur{guests > 1 ? 's' : ''}</span>
                       </div>
-                      <select className="border rounded px-3 py-1 text-sm" defaultValue="2">
+                      <select 
+                        className="border rounded px-3 py-1 text-sm" 
+                        value={guests}
+                        onChange={(e) => setGuests(parseInt(e.target.value))}
+                      >
                         <option value="1">1</option>
                         <option value="2">2</option>
                         <option value="3">3</option>
                         <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
                       </select>
                     </div>
                   </div>
@@ -402,22 +368,22 @@ export default function PropertyDetail() {
                       <Users className="h-6 w-6 text-rose-600" />
                     </div>
                     <div>
-                      <p className="font-medium">{property.host.name}</p>
-                      <p className="text-sm text-muted-foreground">Membre depuis {property.host.memberSince}</p>
+                      <p className="font-medium">{property.host?.name || 'Hôte'}</p>
+                      <p className="text-sm text-muted-foreground">Membre depuis {property.host?.memberSince || 'N/A'}</p>
                     </div>
                   </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Taux de réponse</span>
-                      <span className="font-medium">{property.host.responseRate}%</span>
+                      <span className="font-medium">{property.host?.responseRate || 'N/A'}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Temps de réponse</span>
-                      <span className="font-medium">{property.host.responseTime}</span>
+                      <span className="font-medium">{property.host?.responseTime || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Avis reçus</span>
-                      <span className="font-medium">{property.host.reviews}</span>
+                      <span className="font-medium">{property.host?.reviews || 'N/A'}</span>
                     </div>
                   </div>
                   <Button 

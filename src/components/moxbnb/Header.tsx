@@ -56,7 +56,7 @@ export default function Header() {
             <NavigationMenuList>
               <NavigationMenuItem>
                 <NavigationMenuLink
-                  href="#"
+                  href="/"
                   className="px-4 py-2 text-sm font-medium transition-colors hover:text-rose-600"
                 >
                   {t('nav.home')}
@@ -65,7 +65,7 @@ export default function Header() {
               
               <NavigationMenuItem>
                 <NavigationMenuLink
-                  href="#properties"
+                  href="/properties"
                   className="px-4 py-2 text-sm font-medium transition-colors hover:text-rose-600"
                 >
                   {t('nav.properties')}
@@ -74,7 +74,16 @@ export default function Header() {
 
               <NavigationMenuItem>
                 <NavigationMenuLink
-                  href="#experiences"
+                  href="/student-housing"
+                  className="px-4 py-2 text-sm font-medium transition-colors hover:text-rose-600"
+                >
+                  {t('properties.studentHousing')}
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+
+              <NavigationMenuItem>
+                <NavigationMenuLink
+                  href="/experiences"
                   className="px-4 py-2 text-sm font-medium transition-colors hover:text-rose-600"
                 >
                   {t('nav.experiences')}
@@ -83,7 +92,7 @@ export default function Header() {
 
               <NavigationMenuItem>
                 <NavigationMenuLink
-                  href="#services"
+                  href="/services"
                   className="px-4 py-2 text-sm font-medium transition-colors hover:text-rose-600"
                 >
                   {t('nav.services')}
@@ -116,13 +125,17 @@ export default function Header() {
                   <span>{user.firstName} {user.lastName}</span>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" data-testid="user-dropdown-content">
-                  <DropdownMenuItem onClick={() => console.log('Profile clicked')}>
-                    <User className="mr-2 h-4 w-4" />
-                    Mon Profil
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => console.log('Bookings clicked')}>
-                    Mes Réservations
-                  </DropdownMenuItem>
+                  <Link href="/profile" className="block w-full">
+                    <DropdownMenuItem>
+                      <User className="mr-2 h-4 w-4" />
+                      Mon Profil
+                    </DropdownMenuItem>
+                  </Link>
+                  <Link href="/bookings" className="block w-full">
+                    <DropdownMenuItem>
+                      Mes Réservations
+                    </DropdownMenuItem>
+                  </Link>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                     <LogOut className="mr-2 h-4 w-4" />
@@ -159,16 +172,19 @@ export default function Header() {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t">
             <div className="flex flex-col space-y-3">
-              <a href="#" className="text-sm font-medium px-2 py-2 hover:bg-muted rounded">
+              <a href="/" className="text-sm font-medium px-2 py-2 hover:bg-muted rounded">
                 {t('nav.home')}
               </a>
-              <a href="#properties" className="text-sm font-medium px-2 py-2 hover:bg-muted rounded">
+              <a href="/properties" className="text-sm font-medium px-2 py-2 hover:bg-muted rounded">
                 {t('nav.properties')}
               </a>
-              <a href="#experiences" className="text-sm font-medium px-2 py-2 hover:bg-muted rounded">
+              <a href="/student-housing" className="text-sm font-medium px-2 py-2 hover:bg-muted rounded">
+                {t('properties.studentHousing')}
+              </a>
+              <a href="/experiences" className="text-sm font-medium px-2 py-2 hover:bg-muted rounded">
                 {t('nav.experiences')}
               </a>
-              <a href="#services" className="text-sm font-medium px-2 py-2 hover:bg-muted rounded">
+              <a href="/services" className="text-sm font-medium px-2 py-2 hover:bg-muted rounded">
                 {t('nav.services')}
               </a>
               

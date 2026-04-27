@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   MapPin, 
@@ -18,59 +18,60 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { api } from '@/lib/api';
 
 export default function ServiceDetail() {
   const params = useParams();
   const router = useRouter();
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [service, setService] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock service data
-  const service = {
-    id: params.id,
-    title: 'Cuisine Traditionnelle à Domicile',
-    type: 'Chef privé',
-    location: 'Tunis, Tunisie',
-    city: 'Tunis',
-    price: 500,
-    duration: '4 heures',
-    description: 'Profitez d\'un chef professionnel à domicile qui préparera pour vous un repas traditionnel tunisien authentique. Notre chef utilise des produits locaux frais pour créer des plats savoureux et mémorables. Parfait pour les soirées spéciales, les fêtes ou simplement pour vous faire plaisir.',
-    servicesIncluded: [
-      'Chef professionnel à domicile',
-      'Menu personnalisé selon vos préférences',
-      'Ingrédients frais et de qualité',
-      'Préparation complète du repas',
-      'Service à table',
-      'Nettoyage de la cuisine après le service'
-    ],
-    menuOptions: [
-      'Cuisine traditionnelle tunisienne',
-      'Cuisine méditerranéenne',
-      'Menu végétarien',
-      'Menu vegan',
-      'Cuisine fusion internationale'
-    ],
-    available: true,
-    rating: 4.9,
-    reviews: 78,
-    images: [
-      'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800',
-      'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800',
-      'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&auto=format&fit=crop&w=400'
-    ],
-    provider: {
-      name: 'Chef Fatma Mansouri',
-      avatar: null,
-      responseRate: 98,
-      responseTime: '1 heure',
-      memberSince: '2021',
-      reviews: 234,
-      verified: true
+  useEffect(() => {
+    const fetchService = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get(`/services/${params.id}`);
+        setService(response.data?.data || response.data);
+      } catch (err) {
+        console.error('Error fetching service:', err);
+        setError('Failed to load service');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (params.id) {
+      fetchService();
     }
-  };
+  }, [params.id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mx-auto mb-4"></div>
+          <p>Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !service) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error || 'Service not found'}</p>
+          <Button onClick={() => router.back()}>Retour</Button>
+        </div>
+      </div>
+    );
+  }
 
   const handleBooking = () => {
-    console.log('Booking service:', service.id);
+    console.log('Booking service:', service._id);
   };
 
   return (
@@ -98,13 +99,13 @@ export default function ServiceDetail() {
             <div className="grid grid-cols-2 gap-2">
               <div className="col-span-2 row-span-2">
                 <img
-                  src={service.images[selectedImage]}
+                  src={service.images?.[selectedImage] || '/api/placeholder/800/600'}
                   alt={service.title}
                   className="w-full h-96 object-cover rounded-lg cursor-pointer"
                   onClick={() => setSelectedImage(0)}
                 />
               </div>
-              {service.images.slice(1).map((image, index) => (
+              {service.images?.slice(1).map((image: string, index: number) => (
                 <img
                   key={index}
                   src={image}
@@ -160,7 +161,7 @@ export default function ServiceDetail() {
             <div>
               <h2 className="text-xl font-semibold mb-4">Ce qui est inclus</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {service.servicesIncluded.map((item, index) => (
+                {(service.servicesIncluded || []).map((item: string, index: number) => (
                   <div key={index} className="flex items-center space-x-2 p-3 border rounded-lg">
                     <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
                     <span className="text-sm">{item}</span>
@@ -173,7 +174,7 @@ export default function ServiceDetail() {
             <div>
               <h2 className="text-xl font-semibold mb-4">Options de menu</h2>
               <div className="space-y-2">
-                {service.menuOptions.map((option, index) => (
+                {(service.menuOptions || []).map((option: string, index: number) => (
                   <div key={index} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
                     <CheckCircle className="h-5 w-5 text-rose-600 flex-shrink-0" />
                     <span className="text-sm">{option}</span>
@@ -248,7 +249,7 @@ export default function ServiceDetail() {
                 <div className="border rounded-lg p-3 mb-4">
                   <label className="block text-sm font-medium mb-2">Options de menu</label>
                   <select className="w-full border rounded px-3 py-2 text-sm">
-                    {service.menuOptions.map((option, index) => (
+                    {(service.menuOptions || []).map((option: string, index: number) => (
                       <option key={index}>{option}</option>
                     ))}
                   </select>
@@ -280,7 +281,7 @@ export default function ServiceDetail() {
 
                 {/* Provider Info */}
                 <div className="space-y-3">
-                  {service.provider.verified && (
+                  {service.provider?.verified && (
                     <Badge className="bg-blue-100 text-blue-800 mb-2">
                       <Award className="h-3 w-3 mr-1" />
                       Prestataire vérifié
@@ -292,22 +293,22 @@ export default function ServiceDetail() {
                       <User className="h-6 w-6 text-rose-600" />
                     </div>
                     <div>
-                      <p className="font-medium">{service.provider.name}</p>
-                      <p className="text-sm text-muted-foreground">Membre depuis {service.provider.memberSince}</p>
+                      <p className="font-medium">{service.provider?.name || 'Prestataire'}</p>
+                      <p className="text-sm text-muted-foreground">Membre depuis {service.provider?.memberSince || 'N/A'}</p>
                     </div>
                   </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Taux de réponse</span>
-                      <span className="font-medium">{service.provider.responseRate}%</span>
+                      <span className="font-medium">{service.provider?.responseRate || 'N/A'}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Temps de réponse</span>
-                      <span className="font-medium">{service.provider.responseTime}</span>
+                      <span className="font-medium">{service.provider?.responseTime || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Avis reçus</span>
-                      <span className="font-medium">{service.provider.reviews}</span>
+                      <span className="font-medium">{service.provider?.reviews || 'N/A'}</span>
                     </div>
                   </div>
                   <Button variant="outline" className="w-full">

@@ -19,16 +19,55 @@
       "lastName": "Nom",
       "email": "Email",
       "phone": "Téléphone",
+      "optional": "optionnel",
       "password": "Mot de passe",
       "confirmPassword": "Confirmer le mot de passe",
       "createAccount": "Créer un compte",
       "creatingAccount": "Création du compte...",
       "haveAccount": "Déjà un compte ?",
       "signIn": "Connectez-vous",
+      "orContinueWith": "ou continuer avec",
+      "joinAs": "Inscrivez-vous en tant que",
+      "becomeHost": "Devenir un Hôte",
+      "becomeProvider": "Devenir un Prestataire",
       "agreeTerms": "Je suis d'accord avec les",
       "termsOfService": "conditions d'utilisation",
       "and": "et la",
       "privacyPolicy": "politique de confidentialité"
+    }
+  },
+  "host": {
+    "signup": {
+      "title": "Devenir un Hôte",
+      "description": "Partagez votre propriété et commencez à gagner",
+      "personalInfo": "Informations Personnelles",
+      "propertyInfo": "Informations sur la Propriété",
+      "propertyType": "Type de Propriété",
+      "selectType": "Sélectionnez le type de propriété",
+      "address": "Adresse de la Propriété",
+      "city": "Ville",
+      "description": "Description de la Propriété",
+      "createHostAccount": "Créer un Compte Hôte",
+      "creating": "Création du Compte Hôte...",
+      "changeRole": "Vous voulez rejoindre autrement?",
+      "backToSignup": "Retour à l'inscription"
+    }
+  },
+  "provider": {
+    "signup": {
+      "title": "Devenir Prestataire de Service",
+      "description": "Offrez vos services et atteignez plus de clients",
+      "personalInfo": "Informations Personnelles",
+      "serviceInfo": "Informations sur les Services",
+      "serviceType": "Type de Service",
+      "selectService": "Sélectionnez le type de service",
+      "companyName": "Nom de l'Entreprise/Affaire",
+      "specialization": "Spécialisations",
+      "experience": "Expérience et Qualifications",
+      "createProviderAccount": "Créer un Compte Prestataire",
+      "creating": "Création du Compte Prestataire...",
+      "changeRole": "Vous voulez rejoindre autrement?",
+      "backToSignup": "Retour à l'inscription"
     }
   },
   "profile": {
@@ -82,8 +121,15 @@
     "villa": "Villa",
     "privateRoom": "Chambre privée",
     "cabin": "Cabane",
+    "studentHousing": "Logements Étudiants",
     "perNight": "par nuit",
-    "viewDetails": "Voir les détails"
+    "perMonth": "par mois",
+    "viewDetails": "Voir les détails",
+    "viewMap": "Voir sur la carte",
+    "studentListings": "Accueils pour Étudiants",
+    "nightly": "Nuit",
+    "monthly": "Mois",
+    "both": "Nuit & Mois"
   },
   "experiences": {
     "title": "Expériences",

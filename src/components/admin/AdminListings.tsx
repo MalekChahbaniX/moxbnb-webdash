@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { CheckCircle, XCircle, Eye, Search, Filter, Home as HomeIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { CheckCircle, XCircle, Eye, Search, Filter, Home as HomeIcon, Loader2, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select,
   SelectContent,
@@ -22,84 +23,97 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { getPendingListings, getAllListings, approveListing, rejectListing, getStatusBadgeClass, getStatusBadgeText, formatDate } from '@/services/adminService';
 
 export default function AdminListings() {
   const [selectedFilter, setSelectedFilter] = useState('pending');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedListing, setSelectedListing] = useState<any>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  
+  const [listings, setListings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState('pending');
+  const [approving, setApproving] = useState<string | null>(null);
 
-  const mockListings = [
-    {
-      id: 'LST-001',
-      title: 'Villa Luxueuse avec Vue Mer - Sfax',
-      type: 'villa',
-      host: 'Moncef Gharbi',
-      hostEmail: 'moncef@email.com',
-      location: 'Sfax',
-      city: 'Sfax',
-      price: 1200,
-      bedrooms: 5,
-      bathrooms: 3,
-      maxGuests: 10,
-      description: 'Magnifique villa avec piscine privée et vue imprenable sur la mer.',
-      images: ['https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=400'],
-      amenities: ['Piscine', 'Vue mer', 'WiFi', 'Climatisation', 'Parking'],
-      status: 'pending',
-      submittedAt: '2025-01-12 10:30',
-      reviewsCount: 0
-    },
-    {
-      id: 'LST-002',
-      title: 'Appartement Moderne Centre-Ville - Sousse',
-      type: 'apartment',
-      host: 'Leila Belaid',
-      hostEmail: 'leila@email.com',
-      location: 'Sousse',
-      city: 'Sousse',
-      price: 350,
-      bedrooms: 2,
-      bathrooms: 1,
-      maxGuests: 4,
-      description: 'Appartement entièrement rénové au cœur de Sousse, proche de la plage.',
-      images: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400'],
-      amenities: ['WiFi', 'Climatisation', 'Cuisine équipée'],
-      status: 'pending',
-      submittedAt: '2025-01-11 14:15',
-      reviewsCount: 0
-    },
-    {
-      id: 'LST-003',
-      title: 'Maison Traditionnelle - Tataouine',
-      type: 'house',
-      host: 'Khaled Tlili',
-      hostEmail: 'khaled@email.com',
-      location: 'Tataouine',
-      city: 'Tataouine',
-      price: 280,
-      bedrooms: 3,
-      bathrooms: 2,
-      maxGuests: 6,
-      description: 'Authentique maison troglodyte rénovée avec tout le confort moderne.',
-      images: ['https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400'],
-      amenities: ['Patio', 'WiFi', 'Climatisation', 'Cuisine traditionnelle'],
-      status: 'pending',
-      submittedAt: '2025-01-10 09:45',
-      reviewsCount: 0
-    }
-  ];
+  useEffect(() => {
+    loadListings();
+  }, [page, statusFilter]);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">En attente</Badge>;
-      case 'approved':
-        return <Badge className="bg-green-100 text-green-800">Approuvée</Badge>;
-      case 'rejected':
-        return <Badge className="bg-red-100 text-red-800">Rejetée</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
+  const loadListings = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = statusFilter === 'pending' 
+        ? await getPendingListings(page, 6)
+        : await getAllListings({ status: statusFilter, page, limit: 6 });
+      
+      if (response.success) {
+        setListings(response.data);
+        if (response.pagination) {
+          setTotalPages(response.pagination.pages);
+        }
+      } else {
+        setError('Erreur lors du chargement des annonces');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleApprove = async (listingId: string) => {
+    try {
+      setApproving(listingId);
+      const response = await approveListing(listingId);
+      if (response.success) {
+        setListings(listings.filter(l => l._id !== listingId));
+        if (listings.length === 1 && page > 1) {
+          setPage(page - 1);
+        }
+      }
+    } catch (err) {
+      setError('Erreur lors de l\'approbation');
+    } finally {
+      setApproving(null);
+    }
+  };
+
+  const handleRejectClick = (listingId: string) => {
+    setRejectingId(listingId);
+    setRejectReason('');
+    setShowRejectDialog(true);
+  };
+
+  const handleRejectConfirm = async () => {
+    if (!rejectingId) return;
+    try {
+      setApproving(rejectingId);
+      const response = await rejectListing(rejectingId, rejectReason);
+      if (response.success) {
+        setListings(listings.filter(l => l._id !== rejectingId));
+        setShowRejectDialog(false);
+        if (listings.length === 1 && page > 1) {
+          setPage(page - 1);
+        }
+      }
+    } catch (err) {
+      setError('Erreur lors du rejet');
+    } finally {
+      setApproving(null);
+    }
+  };
+
+  const handleViewDetails = (listing: any) => {
+    setSelectedListing(listing);
+    setShowDetails(true);
   };
 
   const getTypeLabel = (type: string) => {
@@ -113,22 +127,13 @@ export default function AdminListings() {
     return labels[type] || type;
   };
 
-  const handleApprove = (listingId: string) => {
-    console.log('Approving listing:', listingId);
-    // API call to approve listing
-  };
-
-  const handleReject = (listingId: string) => {
-    if (confirm('Êtes-vous sûr de vouloir rejeter cette annonce ?')) {
-      console.log('Rejecting listing:', listingId);
-      // API call to reject listing
-    }
-  };
-
-  const handleViewDetails = (listing: any) => {
-    setSelectedListing(listing);
-    setShowDetails(true);
-  };
+  if (loading && listings.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -139,6 +144,13 @@ export default function AdminListings() {
         </p>
       </div>
 
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Search and Filters */}
       <Card>
         <CardContent className="pt-6">
@@ -147,7 +159,7 @@ export default function AdminListings() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  placeholder="Rechercher par titre, hôte ou ville..."
+                  placeholder="Rechercher par titre..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -155,12 +167,11 @@ export default function AdminListings() {
               </div>
             </div>
             <div className="w-full md:w-64">
-              <Select value={selectedFilter} onValueChange={setSelectedFilter}>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Filtrer par statut" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Toutes les annonces</SelectItem>
                   <SelectItem value="pending">En attente</SelectItem>
                   <SelectItem value="approved">Approuvées</SelectItem>
                   <SelectItem value="rejected">Rejetées</SelectItem>
@@ -171,136 +182,146 @@ export default function AdminListings() {
         </CardContent>
       </Card>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">En attente</p>
-                <p className="text-2xl font-bold text-yellow-600">12</p>
-              </div>
-              <HomeIcon className="h-8 w-8 text-yellow-600" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Approuvées</p>
-                <p className="text-2xl font-bold text-green-600">1,234</p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Rejetées</p>
-                <p className="text-2xl font-bold text-red-600">45</p>
-              </div>
-              <XCircle className="h-8 w-8 text-red-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Listings Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {mockListings.map((listing) => (
-          <Card key={listing.id} className="overflow-hidden">
-            <div className="relative h-48 bg-gray-200">
-              {listing.images[0] && (
-                <img
-                  src={listing.images[0]}
-                  alt={listing.title}
-                  className="w-full h-full object-cover"
-                />
-              )}
-              <div className="absolute top-2 left-2 flex gap-2">
-                {getStatusBadge(listing.status)}
+      {listings.length > 0 ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {listings.map((listing) => (
+            <Card key={listing._id} className="overflow-hidden">
+              <div className="relative h-48 bg-gray-200">
+                {listing.images?.[0] && (
+                  <img
+                    src={listing.images[0]}
+                    alt={listing.title}
+                    className="w-full h-full object-cover"
+                  />
+                )}
+                <div className="absolute top-2 left-2 flex gap-2">
+                  <Badge className={getStatusBadgeClass(listing.status)}>
+                    {getStatusBadgeText(listing.status)}
+                  </Badge>
+                </div>
+              </div>
+              
+              <CardHeader>
+                <CardTitle className="text-lg">{listing.title}</CardTitle>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                  <Badge variant="outline">{getTypeLabel(listing.type)}</Badge>
+                  <span>{listing.city}</span>
+                </div>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Chambres:</span>{' '}
+                      <span className="font-medium">{listing.bedrooms}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">SDB:</span>{' '}
+                      <span className="font-medium">{listing.bathrooms}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Max:</span>{' '}
+                      <span className="font-medium">{listing.maxGuests} pers.</span>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {listing.description}
+                  </p>
+
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div>
+                      <p className="text-2xl font-bold text-rose-600">{listing.pricePerNight} DT</p>
+                      <p className="text-xs text-muted-foreground">par nuit</p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      {listing.status === 'pending' && (
+                        <>
+                          <Button
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => handleApprove(listing._id)}
+                            disabled={approving === listing._id}
+                          >
+                            {approving === listing._id ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                            )}
+                            Approuver
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleRejectClick(listing._id)}
+                            disabled={approving === listing._id}
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Rejeter
+                          </Button>
+                        </>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewDetails(listing)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Détails
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-muted-foreground pt-2 border-t">
+                    <p>Hôte: {listing.host?.name || 'N/A'}</p>
+                    <p>Soumis le: {formatDate(listing.createdAt)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="pt-6 text-center py-12">
+            <p className="text-muted-foreground">Aucune annonce en attente de validation</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Pagination Controls */}
+      {listings.length > 0 && totalPages > 1 && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Page {page} sur {totalPages} • {listings.length} annonce{listings.length > 1 ? 's' : ''} affichée{listings.length > 1 ? 's' : ''}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(page - 1)}
+                  disabled={page === 1}
+                >
+                  Précédent
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(page + 1)}
+                  disabled={page >= totalPages}
+                >
+                  Suivant
+                </Button>
               </div>
             </div>
-            
-            <CardHeader>
-              <CardTitle className="text-lg">{listing.title}</CardTitle>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                <Badge variant="outline">{getTypeLabel(listing.type)}</Badge>
-                <span>{listing.location}</span>
-              </div>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="space-y-3">
-                <div className="grid grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Chambres:</span>{' '}
-                    <span className="font-medium">{listing.bedrooms}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">SDB:</span>{' '}
-                    <span className="font-medium">{listing.bathrooms}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Max:</span>{' '}
-                    <span className="font-medium">{listing.maxGuests} pers.</span>
-                  </div>
-                </div>
-
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {listing.description}
-                </p>
-
-                <div className="flex items-center justify-between pt-2 border-t">
-                  <div>
-                    <p className="text-2xl font-bold text-rose-600">{listing.price} DT</p>
-                    <p className="text-xs text-muted-foreground">par nuit</p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    {listing.status === 'pending' && (
-                      <>
-                        <Button
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700"
-                          onClick={() => handleApprove(listing.id)}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Approuver
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleReject(listing.id)}
-                        >
-                          <XCircle className="h-4 w-4 mr-2" />
-                          Rejeter
-                        </Button>
-                      </>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewDetails(listing)}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      Détails
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="text-xs text-muted-foreground pt-2 border-t">
-                  <p>Hôte: {listing.host}</p>
-                  <p>Soumis le: {listing.submittedAt}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Listing Details Dialog */}
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
@@ -313,7 +334,7 @@ export default function AdminListings() {
           </DialogHeader>
           {selectedListing && (
             <div className="space-y-4">
-              {selectedListing.images[0] && (
+              {selectedListing.images?.[0] && (
                 <img
                   src={selectedListing.images[0]}
                   alt={selectedListing.title}
@@ -328,16 +349,20 @@ export default function AdminListings() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Statut</label>
-                  <div className="mt-1">{getStatusBadge(selectedListing.status)}</div>
+                  <div className="mt-1">
+                    <Badge className={getStatusBadgeClass(selectedListing.status)}>
+                      {getStatusBadgeText(selectedListing.status)}
+                    </Badge>
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Hôte</label>
-                  <p className="font-medium">{selectedListing.host}</p>
-                  <p className="text-sm text-muted-foreground">{selectedListing.hostEmail}</p>
+                  <p className="font-medium">{selectedListing.host?.name || 'N/A'}</p>
+                  <p className="text-sm text-muted-foreground">{selectedListing.host?.email}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Localisation</label>
-                  <p className="font-medium">{selectedListing.location}, {selectedListing.city}</p>
+                  <p className="font-medium">{selectedListing.city}, {selectedListing.region}</p>
                 </div>
               </div>
 
@@ -361,28 +386,63 @@ export default function AdminListings() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Prix</label>
-                  <p className="font-bold text-rose-600">{selectedListing.price} DT/nuit</p>
+                  <p className="font-bold text-rose-600">{selectedListing.pricePerNight} DT/nuit</p>
                 </div>
               </div>
 
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Équipements</label>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {selectedListing.amenities.map((amenity: string, index: number) => (
+                  {selectedListing.amenities?.map((amenity: string, index: number) => (
                     <Badge key={index} variant="outline">{amenity}</Badge>
                   ))}
                 </div>
               </div>
 
               <div className="text-xs text-muted-foreground pt-2 border-t">
-                <p>Soumis le: {selectedListing.submittedAt}</p>
-                <p>ID: {selectedListing.id}</p>
+                <p>Soumis le: {formatDate(selectedListing.createdAt)}</p>
+                <p>ID: {selectedListing._id}</p>
               </div>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDetails(false)}>
               Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Listing Details Dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rejeter l'Annonce</DialogTitle>
+            <DialogDescription>
+              Fournissez une raison pour le rejet
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder="Raison du rejet de l'annonce..."
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            className="min-h-[100px]"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRejectConfirm}
+              disabled={!rejectReason.trim() || approving === rejectingId}
+            >
+              {approving === rejectingId ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <XCircle className="h-4 w-4 mr-2" />
+              )}
+              Rejeter
             </Button>
           </DialogFooter>
         </DialogContent>

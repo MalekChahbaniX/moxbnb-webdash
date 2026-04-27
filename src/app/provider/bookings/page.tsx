@@ -1,77 +1,72 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Users, DollarSign, Filter, Search } from 'lucide-react';
-
-// Mock data - replace with API call
-const mockBookings = [
-  {
-    id: '1',
-    serviceTitle: 'Photographie Professionnelle',
-    clientName: 'Mohamed Ben Ali',
-    clientEmail: 'mohamed@email.com',
-    clientPhone: '+216 55 123 456',
-    date: '2024-01-15',
-    time: '14:00',
-    duration: '2 heures',
-    location: 'Studio Photo, Centre Ville',
-    guests: 1,
-    totalPrice: 150,
-    status: 'confirmed',
-    paymentStatus: 'paid',
-    createdAt: '2024-01-10',
-    specialRequests: 'Besoin de photos pour profil LinkedIn'
-  },
-  {
-    id: '2',
-    serviceTitle: 'Service de Nettoyage',
-    clientName: 'Sarra Trabelsi',
-    clientEmail: 'sarra@email.com',
-    clientPhone: '+216 98 765 432',
-    date: '2024-01-20',
-    time: '09:00',
-    duration: '4 heures',
-    location: 'À domicile',
-    guests: 1,
-    totalPrice: 80,
-    status: 'pending',
-    paymentStatus: 'pending',
-    createdAt: '2024-01-15',
-    specialRequests: 'Nettoyage en profondeur cuisine'
-  },
-  {
-    id: '3',
-    serviceTitle: 'Tour Guidé Tunis',
-    clientName: 'Youssef Karray',
-    clientEmail: 'youssef@email.com',
-    clientPhone: '+216 22 987 654',
-    date: '2024-01-08',
-    time: '10:00',
-    duration: '6 heures',
-    location: 'Centre Ville',
-    guests: 4,
-    totalPrice: 800,
-    status: 'completed',
-    paymentStatus: 'paid',
-    createdAt: '2024-01-05',
-    specialRequests: 'Guide francophone requis'
-  }
-];
+import { Calendar, Clock, MapPin, User, Star, Filter, CheckCircle, XCircle, AlertCircle, Search, Users, DollarSign } from 'lucide-react';
+import Link from 'next/link';
+import { api } from '@/lib/api';
 
 export default function ProviderBookingsPage() {
-  const [bookings, setBookings] = useState(mockBookings);
-  const [filtered, setFiltered] = useState(mockBookings);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [filtered, setFiltered] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/provider/bookings');
+        const bookingsData = response.data?.data || response.data;
+        setBookings(bookingsData);
+        setFiltered(bookingsData);
+      } catch (err) {
+        console.error('Error fetching bookings:', err);
+        setError('Failed to load bookings');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, []);
+
+  useEffect(() => {
+    let filtered = bookings;
+
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(booking => booking.status === statusFilter);
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(booking =>
+        booking.serviceTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.clientName?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFiltered(filtered);
+  }, [bookings, statusFilter, searchTerm]);
 
   const handleStatusChange = async (id: string, newStatus: string) => {
-    // TODO: API call to update booking status
-    setBookings(bookings.map(booking =>
-      booking.id === id ? { ...booking, status: newStatus } : booking
-    ));
+    try {
+      await api.patch(`/bookings/${id}`, { status: newStatus });
+      setBookings(bookings.map(booking =>
+        booking.id === id ? { ...booking, status: newStatus } : booking
+      ));
+      setFiltered(filtered.map(booking =>
+        booking.id === id ? { ...booking, status: newStatus } : booking
+      ));
+    } catch (err) {
+      console.error('Error updating status:', err);
+      alert('Failed to update status');
+    }
   };
 
   return (
@@ -115,9 +110,20 @@ export default function ProviderBookingsPage() {
       </Card>
 
       {/* Bookings List */}
-      <div className="space-y-4">
-        {filtered.map((booking) => (
-          <Card key={booking.id} className="hover:shadow-md transition-shadow">
+      {loading ? (
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-32 bg-gray-200 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="text-center text-red-500 py-8">
+          {error}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filtered.map((booking) => (
+            <Card key={booking.id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 {/* Left side - Booking Info */}
@@ -189,7 +195,7 @@ export default function ProviderBookingsPage() {
                   {booking.specialRequests && (
                     <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                       <p className="text-sm text-gray-600">Demandes spéciales:</p>
-                      <p className="text-sm">{booking.specialRequests}</p>
+                      <p className="text-sm">{booking.specialRequests || 'Aucune'}</p>
                     </div>
                   )}
 
@@ -227,11 +233,12 @@ export default function ProviderBookingsPage() {
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Empty State */}
-      {filtered.length === 0 && (
+      {!loading && !error && filtered.length === 0 && (
         <Card className="text-center py-12">
           <CardContent>
             <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />

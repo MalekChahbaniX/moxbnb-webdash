@@ -1,62 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, MessageSquare, Phone, Mail, MapPin } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Search, Filter, User, Mail, Phone, Calendar, Star, MapPin, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
-
-// Mock data - replace with API call
-const mockClients = [
-  {
-    id: '1',
-    name: 'Mohamed Ben Ali',
-    email: 'mohamed.benali@email.com',
-    phone: '+216 55 123 456',
-    totalBookings: 15,
-    totalSpent: 2250,
-    averageRating: 5.0,
-    joinDate: '2023-06-15',
-    lastBookingDate: '2024-01-15',
-    status: 'active',
-    services: ['Photographie Professionnelle', 'Service de Nettoyage'],
-    avatar: '/api/placeholder/100/100'
-  },
-  {
-    id: '2',
-    name: 'Sarra Trabelsi',
-    email: 'sarra.trabelsi@email.com',
-    phone: '+216 98 765 432',
-    totalBookings: 8,
-    totalSpent: 960,
-    averageRating: 4.8,
-    joinDate: '2023-08-20',
-    lastBookingDate: '2024-01-10',
-    status: 'active',
-    services: ['Photographie Professionnelle'],
-    avatar: '/api/placeholder/100/100'
-  },
-  {
-    id: '3',
-    name: 'Youssef Karray',
-    email: 'youssef.karray@email.com',
-    phone: '+216 22 987 654',
-    totalBookings: 3,
-    totalSpent: 480,
-    averageRating: 4.5,
-    joinDate: '2023-11-10',
-    lastBookingDate: '2023-12-20',
-    status: 'inactive',
-    services: ['Tour Guidé Tunis'],
-    avatar: '/api/placeholder/100/100'
-  }
-];
+import { api } from '@/lib/api';
 
 export default function ProviderClientsPage() {
-  const [clients, setClients] = useState(mockClients);
-  const [filtered, setFiltered] = useState(mockClients);
+  const [clients, setClients] = useState<any[]>([]);
+  const [filtered, setFiltered] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/provider/clients');
+        const clientsData = response.data?.data || response.data;
+        setClients(clientsData);
+        setFiltered(clientsData);
+      } catch (err) {
+        console.error('Error fetching clients:', err);
+        setError('Failed to load clients');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClients();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -193,7 +171,7 @@ export default function ProviderClientsPage() {
       </div>
 
       {/* Empty State */}
-      {filtered.length === 0 && (
+      {!loading && !error && filtered.length === 0 && (
         <Card className="text-center py-12">
           <CardContent>
             <MessageSquare className="mx-auto h-12 w-12 text-gray-400 mb-4" />

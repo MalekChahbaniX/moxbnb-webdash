@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Clock, Eye, Search, Filter } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,77 +21,66 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { api } from '@/lib/api';
 
 export default function AdminReservations() {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedReservation, setSelectedReservation] = useState<any>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [reservations, setReservations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const mockReservations = [
-    {
-      id: 'RES-001',
-      type: 'property',
-      itemTitle: 'Villa avec Piscine à Hammamet',
-      user: 'Mohamed Ben Ali',
-      userEmail: 'mohamed@email.com',
-      checkIn: '2025-01-15',
-      checkOut: '2025-01-20',
-      guests: 4,
-      totalPrice: '3,750 DT',
-      status: 'pending',
-      createdAt: '2025-01-10 14:30'
-    },
-    {
-      id: 'RES-002',
-      type: 'experience',
-      itemTitle: 'Dégustation de Cuisine Traditionnelle',
-      user: 'Fatma Trabelsi',
-      userEmail: 'fatma@email.com',
-      date: '2025-01-18',
-      guests: 2,
-      totalPrice: '300 DT',
-      status: 'pending',
-      createdAt: '2025-01-11 09:15'
-    },
-    {
-      id: 'RES-003',
-      type: 'service',
-      itemTitle: 'Soin Massage Relaxant',
-      user: 'Karim Mejri',
-      userEmail: 'karim@email.com',
-      date: '2025-01-12',
-      guests: 1,
-      totalPrice: '200 DT',
-      status: 'confirmed',
-      createdAt: '2025-01-11 16:45'
-    },
-    {
-      id: 'RES-004',
-      type: 'property',
-      itemTitle: 'Appartement Sidi Bou Said',
-      user: 'Samira Gharbi',
-      userEmail: 'samira@email.com',
-      checkIn: '2025-01-22',
-      checkOut: '2025-01-25',
-      guests: 2,
-      totalPrice: '1,050 DT',
-      status: 'pending',
-      createdAt: '2025-01-12 11:20'
-    },
-    {
-      id: 'RES-005',
-      type: 'service',
-      itemTitle: 'Cuisine Traditionnelle à Domicile',
-      user: 'Omar Jlassi',
-      userEmail: 'omar@email.com',
-      date: '2025-01-14',
-      guests: 6,
-      totalPrice: '3,000 DT',
-      status: 'confirmed',
-      createdAt: '2025-01-10 13:00'
+  useEffect(() => {
+    const fetchReservations = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/bookings');
+        setReservations(response.data?.data || response.data);
+      } catch (err) {
+        console.error('Error fetching reservations:', err);
+        setError('Failed to load reservations');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReservations();
+  }, []);
+
+  const filteredReservations = reservations.filter(reservation => {
+    const matchesFilter = selectedFilter === 'all' || reservation.status === selectedFilter;
+    const matchesSearch = reservation.user?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         reservation.itemTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         reservation.id?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
+
+  const handleViewDetails = (reservation: any) => {
+    setSelectedReservation(reservation);
+    setShowDetails(true);
+  };
+
+  const handleApprove = async (id: string) => {
+    try {
+      await api.patch(`/admin/reservations/${id}`, { status: 'confirmed' });
+      setReservations(reservations.map(r => r.id === id ? { ...r, status: 'confirmed' } : r));
+    } catch (err) {
+      console.error('Error approving reservation:', err);
+      alert('Failed to approve reservation');
     }
-  ];
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      await api.patch(`/admin/reservations/${id}`, { status: 'rejected' });
+      setReservations(reservations.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+    } catch (err) {
+      console.error('Error rejecting reservation:', err);
+      alert('Failed to reject reservation');
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -100,6 +89,7 @@ export default function AdminReservations() {
       case 'confirmed':
         return <Badge className="bg-green-100 text-green-800">Confirmée</Badge>;
       case 'cancelled':
+      case 'rejected':
         return <Badge className="bg-red-100 text-red-800">Annulée</Badge>;
       case 'completed':
         return <Badge className="bg-blue-100 text-blue-800">Terminée</Badge>;
@@ -121,20 +111,27 @@ export default function AdminReservations() {
     }
   };
 
-  const handleAccept = (reservationId: string) => {
-    console.log('Accepting reservation:', reservationId);
-    // API call to accept reservation
-  };
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-24 bg-gray-200 rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-  const handleReject = (reservationId: string) => {
-    console.log('Rejecting reservation:', reservationId);
-    // API call to reject reservation
-  };
-
-  const handleViewDetails = (reservation: any) => {
-    setSelectedReservation(reservation);
-    setShowDetails(true);
-  };
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="text-center text-red-500 py-8">
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -232,7 +229,7 @@ export default function AdminReservations() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {mockReservations.map((reservation) => (
+            {filteredReservations.map((reservation) => (
               <div key={reservation.id} className="p-4 border rounded-lg hover:bg-gray-50">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex-1">
@@ -292,19 +289,19 @@ export default function AdminReservations() {
                       <>
                         <Button
                           size="sm"
+                          onClick={() => handleApprove(reservation.id)}
                           className="bg-green-600 hover:bg-green-700"
-                          onClick={() => handleAccept(reservation.id)}
                         >
-                          <CheckCircle className="h-4 w-4 mr-2" />
+                          <CheckCircle className="h-4 w-4 mr-1" />
                           Accepter
                         </Button>
                         <Button
                           size="sm"
-                          variant="destructive"
                           onClick={() => handleReject(reservation.id)}
+                          variant="destructive"
                         >
-                          <XCircle className="h-4 w-4 mr-2" />
-                          Refuser
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Rejeter
                         </Button>
                       </>
                     )}

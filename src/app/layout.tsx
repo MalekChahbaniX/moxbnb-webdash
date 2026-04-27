@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import SplashScreenWrapper from "@/components/SplashScreenWrapper";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -47,12 +48,14 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}
       >
-        <LanguageProvider>
-          <AuthProvider>
-            {children}
-            <Toaster />
-          </AuthProvider>
-        </LanguageProvider>
+        <SplashScreenWrapper>
+          <LanguageProvider>
+            <AuthProvider>
+              {children}
+              <Toaster />
+            </AuthProvider>
+          </LanguageProvider>
+        </SplashScreenWrapper>
       </body>
     </html>
   );

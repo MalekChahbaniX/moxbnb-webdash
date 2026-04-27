@@ -1,84 +1,67 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, DollarSign, TrendingUp, Download, Filter } from 'lucide-react';
-
-// Mock data - replace with API call
-const mockEarnings = {
-  totalEarnings: 62500,
-  currentMonthEarnings: 6250,
-  lastMonthEarnings: 5780,
-  yearToDateEarnings: 31250,
-  averageMonthlyEarnings: 5208,
-  pendingPayouts: 890,
-  completedPayouts: 61610,
-  earningsByService: [
-    {
-      id: '1',
-      title: 'Photographie Professionnelle',
-      earnings: 2250,
-      bookings: 15,
-      commission: 338,
-      netEarnings: 1912
-    },
-    {
-      id: '2',
-      title: 'Service de Nettoyage',
-      earnings: 1200,
-      bookings: 8,
-      commission: 180,
-      netEarnings: 1020
-    },
-    {
-      id: '3',
-      title: 'Tour Guidé Tunis',
-      earnings: 0,
-      bookings: 0,
-      commission: 0,
-      netEarnings: 0
-    }
-  ],
-  monthlyEarnings: [
-    { month: 'Janvier', earnings: 4500, bookings: 8 },
-    { month: 'Février', earnings: 5200, bookings: 9 },
-    { month: 'Mars', earnings: 6250, bookings: 11 },
-    { month: 'Avril', earnings: 3800, bookings: 7 },
-    { month: 'Mai', earnings: 5800, bookings: 10 },
-    { month: 'Juin', earnings: 7200, bookings: 12 }
-  ],
-  recentTransactions: [
-    {
-      id: '1',
-      type: 'payout',
-      amount: 1912,
-      date: '2024-01-15',
-      status: 'completed',
-      description: 'Paiement Photographie - Janvier'
-    },
-    {
-      id: '2',
-      type: 'payout',
-      amount: 1020,
-      date: '2024-01-15',
-      status: 'completed',
-      description: 'Paiement Nettoyage - Janvier'
-    },
-    {
-      id: '3',
-      type: 'payout',
-      amount: 2250,
-      date: '2024-02-15',
-      status: 'pending',
-      description: 'Paiement Photographie - Février'
-    }
-  ]
-};
+import { api } from '@/lib/api';
 
 export default function ProviderEarningsPage() {
   const [timeRange, setTimeRange] = useState('6months');
+  const [earnings, setEarnings] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchEarnings = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/provider/earnings');
+        setEarnings(response.data?.data || response.data);
+      } catch (err) {
+        console.error('Error fetching earnings:', err);
+        setError('Failed to load earnings');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEarnings();
+  }, []);
+
   const [selectedTab, setSelectedTab] = useState('overview');
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="animate-pulse space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-32 bg-gray-200 rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="text-center text-red-500 py-8">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (!earnings) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="text-center text-gray-500 py-8">
+          No earnings data available
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -144,7 +127,7 @@ export default function ProviderEarningsPage() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{mockEarnings.totalEarnings.toLocaleString()} TND</div>
+                <div className="text-2xl font-bold">{earnings.totalEarnings.toLocaleString()} TND</div>
                 <p className="text-xs text-muted-foreground">
                   Depuis le début
                 </p>
@@ -157,9 +140,9 @@ export default function ProviderEarningsPage() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{mockEarnings.currentMonthEarnings.toLocaleString()} TND</div>
+                <div className="text-2xl font-bold">{earnings.currentMonthEarnings.toLocaleString()} TND</div>
                 <p className="text-xs text-muted-foreground">
-                  +{Math.round(((mockEarnings.currentMonthEarnings - mockEarnings.lastMonthEarnings) / mockEarnings.lastMonthEarnings) * 100)}% par rapport au mois dernier
+                  +{Math.round(((earnings.currentMonthEarnings - earnings.lastMonthEarnings) / earnings.lastMonthEarnings) * 100)}% par rapport au mois dernier
                 </p>
               </CardContent>
             </Card>
@@ -170,7 +153,7 @@ export default function ProviderEarningsPage() {
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{mockEarnings.averageMonthlyEarnings.toLocaleString()} TND</div>
+                <div className="text-2xl font-bold">{earnings.averageMonthlyEarnings.toLocaleString()} TND</div>
                 <p className="text-xs text-muted-foreground">
                   Sur 12 derniers mois
                 </p>
@@ -183,7 +166,7 @@ export default function ProviderEarningsPage() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{mockEarnings.pendingPayouts.toLocaleString()} TND</div>
+                <div className="text-2xl font-bold">{earnings.pendingPayouts.toLocaleString()} TND</div>
                 <p className="text-xs text-muted-foreground">
                   À traiter
                 </p>
@@ -199,7 +182,7 @@ export default function ProviderEarningsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockEarnings.earningsByService.map((service) => (
+                {earnings.earningsByService.map((service) => (
                   <div key={service.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex-1">
                       <h3 className="font-semibold">{service.title}</h3>
@@ -229,11 +212,11 @@ export default function ProviderEarningsPage() {
             </CardHeader>
             <CardContent>
               <div className="h-64 flex items-end justify-between">
-                {mockEarnings.monthlyEarnings.map((month, index) => (
+                {earnings.monthlyEarnings.map((month, index) => (
                   <div key={month.month} className="flex flex-col items-center flex-1">
                     <div 
                       className="w-full bg-blue-500 rounded-t"
-                      style={{ height: `${(month.earnings / Math.max(...mockEarnings.monthlyEarnings.map(m => m.earnings))) * 200}px` }}
+                      style={{ height: `${(month.earnings / Math.max(...earnings.monthlyEarnings.map(m => m.earnings))) * 200}px` }}
                     />
                     <div className="text-xs mt-2 text-center">{month.month.substring(0, 3)}</div>
                     <div className="text-xs text-center text-gray-600">{month.earnings} TND</div>
@@ -253,7 +236,7 @@ export default function ProviderEarningsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockEarnings.recentTransactions.map((transaction) => (
+              {earnings.recentTransactions.map((transaction) => (
                 <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3">

@@ -3,6 +3,8 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search, SlidersHorizontal } from 'lucide-react';
+import Header from '@/components/moxbnb/Header';
+import Footer from '@/components/moxbnb/Footer';
 import PropertyCard from '@/components/moxbnb/PropertyCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -186,8 +188,10 @@ function PropertiesContent() {
   }, [searchTerm, selectedType, selectedCity, sortBy]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-white sticky top-0 z-10">
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      
+      <header className="border-b bg-white">
         <div className="container mx-auto px-4 py-6">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Tous les logements</h1>
           <p className="text-muted-foreground mb-6">
@@ -263,7 +267,7 @@ function PropertiesContent() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="flex-1 container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProperties.map((property) => (
             <PropertyCard key={property.id} {...property} />
@@ -284,6 +288,8 @@ function PropertiesContent() {
           </Button>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

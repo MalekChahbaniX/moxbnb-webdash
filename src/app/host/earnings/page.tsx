@@ -1,96 +1,101 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, DollarSign, TrendingUp, Download, Filter } from 'lucide-react';
+import { Calendar, DollarSign, TrendingUp, Download } from 'lucide-react';
+import { fetchHostDashboard, fetchHostEarnings, fetchMyListings } from '@/services/hostService';
 
-// Mock data - replace with API call
-const mockEarnings = {
-  totalEarnings: 125750,
-  currentMonthEarnings: 8750,
-  lastMonthEarnings: 7800,
-  yearToDateEarnings: 45200,
-  averageMonthlyEarnings: 10467,
-  pendingPayouts: 1250,
-  completedPayouts: 124500,
-  earningsByProperty: [
-    {
-      id: '1',
-      title: 'Villa de Luxe à Sidi Bou Said',
-      earnings: 3000,
-      bookings: 12,
-      commission: 450,
-      netEarnings: 2550
-    },
-    {
-      id: '2',
-      title: 'Appartement Centre Ville',
-      earnings: 1600,
-      bookings: 8,
-      commission: 240,
-      netEarnings: 1360
-    },
-    {
-      id: '3',
-      title: 'Studio Coquet Hammamet',
-      earnings: 0,
-      bookings: 0,
-      commission: 0,
-      netEarnings: 0
-    }
-  ],
-  monthlyEarnings: [
-    { month: 'Janvier', earnings: 6500, bookings: 8 },
-    { month: 'Février', earnings: 7200, bookings: 9 },
-    { month: 'Mars', earnings: 8750, bookings: 11 },
-    { month: 'Avril', earnings: 5400, bookings: 7 },
-    { month: 'Mai', earnings: 9800, bookings: 12 },
-    { month: 'Juin', earnings: 11200, bookings: 15 }
-  ],
-  recentTransactions: [
-    {
-      id: '1',
-      type: 'payout',
-      amount: 2550,
-      date: '2024-01-15',
-      status: 'completed',
-      description: 'Paiement Villa de Luxe - Janvier'
-    },
-    {
-      id: '2',
-      type: 'payout',
-      amount: 1360,
-      date: '2024-01-15',
-      status: 'completed',
-      description: 'Paiement Appartement Centre Ville - Janvier'
-    },
-    {
-      id: '3',
-      type: 'payout',
-      amount: 3750,
-      date: '2024-02-15',
-      status: 'pending',
-      description: 'Paiement Villa de Luxe - Février'
-    }
-  ]
-};
+function monthsFromEarnings(earningsByDate: { date: string; amount: number }[], count: number) {
+  const now = new Date();
+  const rows: { key: string; label: string; earnings: number; bookings: number }[] = [];
+  for (let i = count - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    rows.push({ key, label: d.toLocaleDateString('fr-FR', { month: 'long' }), earnings: 0, bookings: 0 });
+  }
+  const map = Object.fromEntries(rows.map((r) => [r.key, r]));
+  for (const row of earningsByDate || []) {
+    const k = row.date.slice(0, 7);
+    if (map[k]) map[k].earnings += row.amount;
+  }
+  return rows;
+}
 
 export default function HostEarningsPage() {
   const [timeRange, setTimeRange] = useState('6months');
   const [selectedTab, setSelectedTab] = useState('overview');
+  const [loading, setLoading] = useState(true);
+  const [earn, setEarn] = useState<any>(null);
+  const [byProperty, setByProperty] = useState<{ id: string; title: string; earnings: number; bookings: number }[]>([]);
+  const [recent, setRecent] = useState<any[]>([]);
+  const [totalAllTime, setTotalAllTime] = useState(0);
+
+  const period = timeRange === '1month' ? 'month' : timeRange === '1year' ? 'year' : 'year';
+  const barCount = timeRange === '1month' ? 1 : timeRange === '3months' ? 3 : timeRange === '1year' ? 12 : 6;
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [e, dash, { items }] = await Promise.all([
+        fetchHostEarnings(period),
+        fetchHostDashboard(),
+        fetchMyListings({ limit: 40, status: 'all' }),
+      ]);
+      setEarn(e);
+      setTotalAllTime(dash.analytics?.totalRevenue ?? 0);
+      setRecent(dash.recentBookings || []);
+      setByProperty(
+        (items || []).map((l: any) => ({
+          id: String(l._id),
+          title: l.title,
+          earnings: l.stats?.revenue ?? 0,
+          bookings: l.stats?.bookings ?? 0,
+        }))
+      );
+    } catch {
+      setEarn(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [period]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const monthly = useMemo(
+    () => monthsFromEarnings(earn?.earningsByDate || [], barCount),
+    [earn, barCount]
+  );
+  const maxBar = Math.max(1, ...monthly.map((m) => m.earnings));
+
+  const currentMonth = monthly[monthly.length - 1]?.earnings ?? 0;
+  const prevMonth = monthly[monthly.length - 2]?.earnings ?? 0;
+  const pct =
+    prevMonth > 0 ? Math.round(((currentMonth - prevMonth) / prevMonth) * 100) : currentMonth > 0 ? 100 : 0;
+
+  const transactions = recent.slice(0, 12).map((b: any, i: number) => {
+    const title = b.listingId?.title || b.experienceId?.title || b.serviceId?.title || 'Réservation';
+    return {
+      id: String(b._id || i),
+      description: `${title} — ${b.status}`,
+      date: b.createdAt,
+      amount: b.totalPrice,
+      status: b.status === 'COMPLETED' ? 'completed' : 'pending',
+    };
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Revenus</h1>
-            <p className="text-gray-600">Suivi de vos gains et paiements</p>
+            <p className="text-gray-600">Suivi de vos gains (montants des réservations)</p>
           </div>
-          <div className="flex space-x-2">
-            <select 
+          <div className="flex space-x-2 flex-wrap">
+            <select
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value)}
               className="px-4 py-2 border rounded-md"
@@ -100,7 +105,7 @@ export default function HostEarningsPage() {
               <option value="6months">Derniers 6 mois</option>
               <option value="1year">Dernière année</option>
             </select>
-            <Button variant="outline">
+            <Button variant="outline" type="button" disabled title="Bientôt disponible">
               <Download className="mr-2 h-4 w-4" />
               Exporter
             </Button>
@@ -108,24 +113,25 @@ export default function HostEarningsPage() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="mb-6">
         <div className="flex space-x-1 border-b">
           <button
+            type="button"
             onClick={() => setSelectedTab('overview')}
             className={`pb-2 px-1 ${
-              selectedTab === 'overview' 
-                ? 'border-b-2 border-rose-500 text-rose-600' 
+              selectedTab === 'overview'
+                ? 'border-b-2 border-rose-500 text-rose-600'
                 : 'border-b-2 border-transparent text-gray-600 hover:text-gray-900'
             }`}
           >
             Aperçu
           </button>
           <button
+            type="button"
             onClick={() => setSelectedTab('transactions')}
             className={`pb-2 px-1 ${
-              selectedTab === 'transactions' 
-                ? 'border-b-2 border-rose-500 text-rose-600' 
+              selectedTab === 'transactions'
+                ? 'border-b-2 border-rose-500 text-rose-600'
                 : 'border-b-2 border-transparent text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -134,148 +140,142 @@ export default function HostEarningsPage() {
         </div>
       </div>
 
-      {selectedTab === 'overview' && (
+      {loading && <p className="text-gray-600 mb-4">Chargement…</p>}
+
+      {selectedTab === 'overview' && !loading && earn && (
         <>
-          {/* Key Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Revenus Totaux</CardTitle>
+                <CardTitle className="text-sm font-medium">Revenus totaux</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{mockEarnings.totalEarnings.toLocaleString()} TND</div>
-                <p className="text-xs text-muted-foreground">
-                  Depuis le début
-                </p>
+                <div className="text-2xl font-bold">{Number(totalAllTime).toLocaleString()} TND</div>
+                <p className="text-xs text-muted-foreground">Historique (dashboard)</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Ce Mois</CardTitle>
+                <CardTitle className="text-sm font-medium">Période sélectionnée</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{mockEarnings.currentMonthEarnings.toLocaleString()} TND</div>
+                <div className="text-2xl font-bold">{Number(earn.totalEarnings).toLocaleString()} TND</div>
                 <p className="text-xs text-muted-foreground">
-                  +{Math.round(((mockEarnings.currentMonthEarnings - mockEarnings.lastMonthEarnings) / mockEarnings.lastMonthEarnings) * 100)}% par rapport au mois dernier
+                  {pct >= 0 ? '+' : ''}
+                  {pct}% vs barre précédente
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Moyenne Mensuelle</CardTitle>
+                <CardTitle className="text-sm font-medium">Complétées (période)</CardTitle>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{mockEarnings.averageMonthlyEarnings.toLocaleString()} TND</div>
-                <p className="text-xs text-muted-foreground">
-                  Sur 12 derniers mois
-                </p>
+                <div className="text-2xl font-bold">{earn.completedEarnings?.toLocaleString?.() ?? 0} TND</div>
+                <p className="text-xs text-muted-foreground">{earn.completedBookings} réservations</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Paiements en Attente</CardTitle>
+                <CardTitle className="text-sm font-medium">En attente (période)</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{mockEarnings.pendingPayouts.toLocaleString()} TND</div>
-                <p className="text-xs text-muted-foreground">
-                  À traiter
-                </p>
+                <div className="text-2xl font-bold">{Number(earn.pendingEarnings ?? 0).toLocaleString()} TND</div>
+                <p className="text-xs text-muted-foreground">Non complétées</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Earnings by Property */}
           <Card>
             <CardHeader>
-              <CardTitle>Revenus par Propriété</CardTitle>
-              <CardDescription>Détails des gains pour chaque propriété</CardDescription>
+              <CardTitle>Revenus par propriété</CardTitle>
+              <CardDescription>Total des montants de réservation par annonce</CardDescription>
             </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {mockEarnings.earningsByProperty.map((property) => (
-                <div key={property.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{property.title}</h3>
-                    <div className="text-sm text-gray-600">
-                      <span>{property.bookings} réservations</span>
-                      <span className="mx-2">•</span>
-                      <span>Commission: {property.commission} TND</span>
+            <CardContent>
+              <div className="space-y-4">
+                {byProperty.map((property) => (
+                  <div key={property.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{property.title}</h3>
+                      <div className="text-sm text-gray-600">
+                        <span>{property.bookings} réservations</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-green-600">
+                        {property.earnings.toLocaleString()} TND
+                      </div>
+                      <div className="text-xs text-gray-500">Brut</div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-green-600">
-                      {property.netEarnings.toLocaleString()} TND
-                    </div>
-                    <div className="text-xs text-gray-500">Net</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Monthly Chart */}
-          <Card>
+          <Card className="mt-6">
             <CardHeader>
-              <CardTitle>Évolution des Revenus</CardTitle>
-              <CardDescription>Revenus mensuels sur 6 derniers mois</CardDescription>
+              <CardTitle>Évolution (agrégation mensuelle)</CardTitle>
+              <CardDescription>À partir des dates de réservation sur l&apos;année en cours (API)</CardDescription>
             </CardHeader>
-          <CardContent>
-            <div className="h-64 flex items-end justify-between">
-              {mockEarnings.monthlyEarnings.map((month, index) => (
-                <div key={month.month} className="flex flex-col items-center flex-1">
-                  <div 
-                    className="w-full bg-rose-500 rounded-t"
-                    style={{ height: `${(month.earnings / Math.max(...mockEarnings.monthlyEarnings.map(m => m.earnings))) * 200}px` }}
-                  />
-                  <div className="text-xs mt-2 text-center">{month.month.substring(0, 3)}</div>
-                  <div className="text-xs text-center text-gray-600">{month.earnings} TND</div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+            <CardContent>
+              <div className="h-64 flex items-end justify-between gap-1">
+                {monthly.map((month) => (
+                  <div key={month.key} className="flex flex-col items-center flex-1 min-w-0">
+                    <div
+                      className="w-full bg-rose-500 rounded-t min-h-[4px]"
+                      style={{ height: `${(month.earnings / maxBar) * 200}px` }}
+                    />
+                    <div className="text-xs mt-2 text-center truncate w-full">{month.label.slice(0, 3)}.</div>
+                    <div className="text-xs text-center text-gray-600">{Math.round(month.earnings)} TND</div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </>
       )}
 
-      {selectedTab === 'transactions' && (
+      {selectedTab === 'transactions' && !loading && (
         <Card>
           <CardHeader>
-            <CardTitle>Transactions Récentes</CardTitle>
-            <CardDescription>Historique des paiements et transactions</CardDescription>
+            <CardTitle>Réservations récentes</CardTitle>
+            <CardDescription>Les dernières réservations liées à vos annonces</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockEarnings.recentTransactions.map((transaction) => (
+              {transactions.length === 0 && <p className="text-gray-600 text-sm">Aucune transaction</p>}
+              {transactions.map((transaction) => (
                 <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3">
-                      <div className={`w-3 h-3 rounded-full ${
-                        transaction.type === 'payout' ? 'bg-green-500' : 'bg-blue-500'
-                      }`}></div>
+                      <div
+                        className={`w-3 h-3 rounded-full ${
+                          transaction.status === 'completed' ? 'bg-green-500' : 'bg-yellow-500'
+                        }`}
+                      />
                       <div>
                         <p className="font-medium">{transaction.description}</p>
-                        <p className="text-sm text-gray-600">{transaction.date}</p>
+                        <p className="text-sm text-gray-600">
+                          {new Date(transaction.date).toLocaleDateString('fr-FR')}
+                        </p>
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className={`text-lg font-bold ${
-                      transaction.status === 'completed' ? 'text-green-600' : 'text-yellow-600'
-                    }`}>
-                      {transaction.amount.toLocaleString()} TND
-                    </div>
-                    <div className={`text-xs ${
-                      transaction.status === 'completed' ? 'text-green-600' : 'text-yellow-600'
-                    }`}>
-                      {transaction.status === 'completed' ? 'Complété' : 'En attente'}
+                    <div
+                      className={`text-lg font-bold ${
+                        transaction.status === 'completed' ? 'text-green-600' : 'text-yellow-600'
+                      }`}
+                    >
+                      {transaction.amount?.toLocaleString?.() ?? transaction.amount} TND
                     </div>
                   </div>
                 </div>

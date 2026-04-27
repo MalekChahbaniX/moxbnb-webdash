@@ -1,9 +1,20 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-// API base URL - change this to match your backend
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://moxbnb-back.onrender.com/api'
-  : 'http://localhost:3002/api';
+function resolveApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '');
+  }
+  return process.env.NODE_ENV === 'production'
+    ? 'https://moxbnb-back.onrender.com/api'
+    : 'http://localhost:3002/api';
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
+
+/** Origin without trailing /api — for /uploads and static files */
+export function getMediaBaseUrl(): string {
+  return API_BASE_URL.replace(/\/api\/?$/, '') || 'http://localhost:3002';
+}
 
 // Create axios instance with default configuration
 const apiClient: AxiosInstance = axios.create({

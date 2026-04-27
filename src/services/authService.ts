@@ -12,6 +12,17 @@ export interface RegisterData {
   email: string;
   password: string;
   phone?: string;
+  role?: 'GUEST' | 'CLIENT' | 'HOST' | 'PROVIDER' | 'ADMIN';
+  // Provider specific fields
+  serviceTypes?: string[];
+  companyName?: string;
+  specialization?: string;
+  experience?: string;
+  // Host specific fields
+  propertyTypes?: string[];
+  address?: string;
+  city?: string;
+  description?: string;
 }
 
 export interface AuthResponse {

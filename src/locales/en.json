@@ -1,4 +1,75 @@
 {
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "description": "Sign in to your Moxbnb account",
+      "email": "Email",
+      "password": "Password",
+      "signIn": "Sign In",
+      "signingIn": "Signing In...",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign Up",
+      "forgotPassword": "Forgot password?",
+      "rememberMe": "Remember me"
+    },
+    "signup": {
+      "title": "Create Account",
+      "description": "Join Moxbnb and start your journey",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email Address",
+      "phone": "Phone Number",
+      "optional": "optional",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "createAccount": "Create Account",
+      "creatingAccount": "Creating Account...",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign In",
+      "orContinueWith": "or continue with",
+      "joinAs": "Join As",
+      "becomeHost": "Become a Host",
+      "becomeProvider": "Become a Provider",
+      "agreeTerms": "I agree with the",
+      "termsOfService": "Terms of Service",
+      "and": "and the",
+      "privacyPolicy": "Privacy Policy"
+    }
+  },
+  "host": {
+    "signup": {
+      "title": "Become a Host",
+      "description": "Share your property and start earning",
+      "personalInfo": "Personal Information",
+      "propertyInfo": "Property Information",
+      "propertyType": "Property Type",
+      "selectType": "Select property type",
+      "address": "Property Address",
+      "city": "City",
+      "description": "Property Description",
+      "createHostAccount": "Create Host Account",
+      "creating": "Creating Host Account...",
+      "changeRole": "Want to join as something else?",
+      "backToSignup": "Back to signup"
+    }
+  },
+  "provider": {
+    "signup": {
+      "title": "Become a Service Provider",
+      "description": "Offer your services and reach more clients",
+      "personalInfo": "Personal Information",
+      "serviceInfo": "Service Information",
+      "serviceType": "Service Type",
+      "selectService": "Select service type",
+      "companyName": "Company/Business Name",
+      "specialization": "Specializations",
+      "experience": "Experience & Qualifications",
+      "createProviderAccount": "Create Provider Account",
+      "creating": "Creating Provider Account...",
+      "changeRole": "Want to join as something else?",
+      "backToSignup": "Back to signup"
+    }
+  },
   "nav": {
     "home": "Home",
     "properties": "Properties",
@@ -22,8 +93,15 @@
     "villa": "Villa",
     "privateRoom": "Private Room",
     "cabin": "Cabin",
+    "studentHousing": "Student Housing",
     "perNight": "per night",
-    "viewDetails": "View Details"
+    "perMonth": "per month",
+    "viewDetails": "View Details",
+    "viewMap": "View on Map",
+    "studentListings": "Student Accommodations",
+    "nightly": "Nightly",
+    "monthly": "Monthly",
+    "both": "Nightly & Monthly"
   },
   "experiences": {
     "title": "Experiences",

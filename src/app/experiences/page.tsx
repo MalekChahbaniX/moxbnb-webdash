@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { Search, SlidersHorizontal } from 'lucide-react';
+import Header from '@/components/moxbnb/Header';
+import Footer from '@/components/moxbnb/Footer';
 import ExperienceCard from '@/components/moxbnb/ExperienceCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -119,8 +121,9 @@ export default function ExperiencesPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-white sticky top-0 z-10">
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <header className="border-b bg-white">
         <div className="container mx-auto px-4 py-6">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Toutes les expériences</h1>
           <p className="text-muted-foreground mb-6">
@@ -209,6 +212,7 @@ export default function ExperiencesPage() {
           </Button>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

@@ -52,6 +52,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    await connectDB();
     const body = await request.json();
     const {
       title,
@@ -69,32 +70,23 @@ export async function POST(request: Request) {
       hostId
     } = body;
 
-    const property = await db.listing.create({
-      data: {
-        title,
-        description,
-        type,
-        location,
-        city,
-        price: parseFloat(price),
-        bedrooms: parseInt(bedrooms),
-        bathrooms: parseInt(bathrooms),
-        maxGuests: parseInt(maxGuests),
-        amenities: amenities ? JSON.stringify(amenities) : null,
-        houseRules,
-        images: images ? JSON.stringify(images) : null,
-        hostId
-      },
-      include: {
-        host: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true
-          }
-        }
-      }
+    const property = await Listing.create({
+      title,
+      description,
+      type,
+      location,
+      city,
+      price: parseFloat(price),
+      bedrooms: parseInt(bedrooms),
+      bathrooms: parseInt(bathrooms),
+      maxGuests: parseInt(maxGuests),
+      amenities,
+      houseRules,
+      images,
+      hostId
     });
+
+    await property.populate('host', 'id name avatar');
 
     return NextResponse.json(property, { status: 201 });
   } catch (error) {

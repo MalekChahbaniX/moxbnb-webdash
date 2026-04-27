@@ -1,48 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Check, X, Filter } from 'lucide-react';
-
-// Mock data - replace with API call
-const mockBookings = [
-  {
-    id: '1',
-    serviceTitle: 'Photographie Professionnelle',
-    clientName: 'Mohamed Ben Ali',
-    date: '2024-01-15',
-    time: '14:00',
-    duration: '2 heures',
-    location: 'Studio Photo, Centre Ville',
-    status: 'confirmed'
-  },
-  {
-    id: '2',
-    serviceTitle: 'Service de Nettoyage',
-    clientName: 'Sarra Trabelsi',
-    date: '2024-01-20',
-    time: '09:00',
-    duration: '4 heures',
-    location: 'À domicile',
-    status: 'pending'
-  },
-  {
-    id: '3',
-    serviceTitle: 'Tour Guidé Tunis',
-    clientName: 'Youssef Karray',
-    date: '2024-01-08',
-    time: '10:00',
-    duration: '6 heures',
-    location: 'Centre Ville',
-    status: 'completed'
-  }
-];
+import { api } from '@/lib/api';
 
 export default function ProviderCalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/provider/bookings');
+        setBookings(response.data?.data || response.data);
+      } catch (err) {
+        console.error('Error fetching bookings:', err);
+        setError('Failed to load bookings');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, []);
 
   // Generate calendar days
   const getDaysInMonth = (date: Date) => {
@@ -64,7 +51,7 @@ export default function ProviderCalendarPage() {
 
   const getBookingsForDate = (date: Date) => {
     if (!date) return [];
-    return mockBookings.filter(booking => {
+    return bookings.filter(booking => {
       const bookingDate = new Date(booking.date);
       return date.toDateString() === bookingDate.toDateString();
     });
@@ -76,9 +63,10 @@ export default function ProviderCalendarPage() {
     return date.toDateString() === today.toDateString();
   };
 
-  const monthDays = getDaysInMonth(currentDate);
   const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
   const weekDays = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+  const monthDays = getDaysInMonth(currentDate);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     const newDate = new Date(currentDate);

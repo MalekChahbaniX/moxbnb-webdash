@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,81 +20,60 @@ import {
   Filter,
   CheckCircle
 } from 'lucide-react';
-
-// Mock data - replace with API call
-const mockConversations = [
-  {
-    id: '1',
-    clientName: 'Mohamed Ben Ali',
-    clientEmail: 'mohamed.benali@email.com',
-    clientAvatar: '/api/placeholder/100/100',
-    serviceTitle: 'Photographie Professionnelle',
-    lastMessage: 'Bonjour, je voudrais savoir si le studio est disponible ce samedi?',
-    lastMessageTime: '2024-01-15T14:30:00',
-    unreadCount: 2,
-    status: 'active',
-    bookingId: 'booking-123',
-    rating: null,
-    messages: [
-      {
-        id: '1',
-        sender: 'client',
-        content: 'Bonjour, je suis intéressé par votre service de photographie',
-        timestamp: '2024-01-15T10:00:00',
-        read: true
-      },
-      {
-        id: '2',
-        sender: 'provider',
-        content: 'Bonjour Mohamed! Le studio est disponible. Quelle heure vous convient?',
-        timestamp: '2024-01-15T11:00:00',
-        read: true
-      },
-      {
-        id: '3',
-        sender: 'client',
-        content: 'Bonjour, je voudrais savoir si le studio est disponible ce samedi?',
-        timestamp: '2024-01-15T14:30:00',
-        read: false
-      }
-    ]
-  },
-  {
-    id: '2',
-    clientName: 'Sarra Trabelsi',
-    clientEmail: 'sarra.trabelsi@email.com',
-    clientAvatar: '/api/placeholder/100/100',
-    serviceTitle: 'Service de Nettoyage',
-    lastMessage: 'Merci beaucoup pour votre service!',
-    lastMessageTime: '2024-01-14T16:45:00',
-    unreadCount: 0,
-    status: 'completed',
-    bookingId: 'booking-456',
-    rating: 5,
-    messages: []
-  },
-  {
-    id: '3',
-    clientName: 'Youssef Karray',
-    clientEmail: 'youssef.karray@email.com',
-    clientAvatar: '/api/placeholder/100/100',
-    serviceTitle: 'Tour Guidé Tunis',
-    lastMessage: 'Est-ce que le guide parle anglais?',
-    lastMessageTime: '2024-01-13T09:15:00',
-    unreadCount: 1,
-    status: 'pending',
-    bookingId: null,
-    rating: null,
-    messages: []
-  }
-];
+import Link from 'next/link';
+import { api } from '@/lib/api';
 
 export default function ProviderMessagesPage() {
-  const [conversations, setConversations] = useState(mockConversations);
-  const [selectedConversation, setSelectedConversation] = useState(mockConversations[0]);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [filteredConversations, setFilteredConversations] = useState<any[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/messages/conversations');
+        setConversations(response.data?.data || response.data);
+      } catch (err) {
+        console.error('Error fetching conversations:', err);
+        setError('Failed to load messages');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConversations();
+  }, []);
+
+  useEffect(() => {
+    let filtered = conversations;
+
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(conv => conv.status === statusFilter);
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(conv =>
+        conv.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        conv.serviceTitle?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredConversations(filtered);
+  }, [conversations, statusFilter, searchTerm]);
+
+  useEffect(() => {
+    if (conversations.length > 0 && !selectedConversation) {
+      setSelectedConversation(conversations[0]);
+    }
+  }, [conversations, selectedConversation]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedConversation) return;
@@ -121,13 +100,6 @@ export default function ProviderMessagesPage() {
     setSelectedConversation(updatedConversation);
     setNewMessage('');
   };
-
-  const filteredConversations = conversations.filter(conv => {
-    const matchesSearch = conv.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         conv.serviceTitle.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || conv.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">

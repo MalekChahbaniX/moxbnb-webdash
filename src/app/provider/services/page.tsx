@@ -8,67 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Edit, Trash2, Eye, Plus, Filter, Wrench, Star, Calendar, Clock } from 'lucide-react';
 import Link from 'next/link';
-
-// Mock data - replace with API call
-const mockServices = [
-  {
-    id: '1',
-    title: 'Photographie Professionnelle',
-    category: 'photography',
-    price: 150,
-    duration: '2 heures',
-    maxGuests: 10,
-    location: 'Studio Photo, Centre Ville',
-    city: 'Tunis',
-    country: 'Tunisie',
-    status: 'active',
-    bookings: 15,
-    revenue: 2250,
-    rating: 5.0,
-    reviews: 28,
-    images: ['/api/placeholder/300/200'],
-    createdAt: '2024-01-15',
-    updatedAt: '2024-01-20'
-  },
-  {
-    id: '2',
-    title: 'Service de Nettoyage',
-    category: 'cleaning',
-    price: 80,
-    duration: '4 heures',
-    maxGuests: 1,
-    location: 'À domicile',
-    city: 'Tunis',
-    country: 'Tunisie',
-    status: 'active',
-    bookings: 8,
-    revenue: 640,
-    rating: 4.8,
-    reviews: 12,
-    images: ['/api/placeholder/300/200'],
-    createdAt: '2024-01-10',
-    updatedAt: '2024-01-18'
-  },
-  {
-    id: '3',
-    title: 'Tour Guidé Tunis',
-    category: 'tourism',
-    price: 200,
-    duration: '6 heures',
-    maxGuests: 6,
-    location: 'Centre Ville',
-    city: 'Tunis',
-    country: 'Tunisie',
-    status: 'inactive',
-    bookings: 0,
-    revenue: 0,
-    rating: 4.7,
-    reviews: 8,
-    images: ['/api/placeholder/300/200'],
-    createdAt: '2024-01-05',
-    updatedAt: '2024-01-05'
-  }
-];
+import { api } from '@/lib/api';
 
 const serviceCategories = [
   { value: 'all', label: 'Toutes les catégories' },
@@ -83,10 +23,31 @@ const serviceCategories = [
 ];
 
 export default function ProviderServicesPage() {
-  const [services, setServices] = useState(mockServices);
-  const [filtered, setFiltered] = useState(mockServices);
+  const [services, setServices] = useState<any[]>([]);
+  const [filtered, setFiltered] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/provider/services');
+        const servicesData = response.data?.data || response.data;
+        setServices(servicesData);
+        setFiltered(servicesData);
+      } catch (err) {
+        console.error('Error fetching services:', err);
+        setError('Failed to load services');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchServices();
+  }, []);
 
   useEffect(() => {
     let filtered = services;
@@ -101,7 +62,7 @@ export default function ProviderServicesPage() {
 
     // Filter by category
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter(service => service.category === categoryFilter);
+      filtered = filtered.filter(service => service.type === categoryFilter);
     }
 
     setFiltered(filtered);
@@ -109,16 +70,30 @@ export default function ProviderServicesPage() {
 
   const handleDelete = async (id: string) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce service?')) {
-      // TODO: API call to delete service
-      setServices(services.filter(service => service.id !== id));
+      try {
+        await api.delete(`/services/${id}`);
+        setServices(services.filter(service => service._id !== id));
+        setFiltered(filtered.filter(service => service._id !== id));
+      } catch (err) {
+        console.error('Error deleting service:', err);
+        alert('Failed to delete service');
+      }
     }
   };
 
   const handleStatusChange = async (id: string, newStatus: string) => {
-    // TODO: API call to update status
-    setServices(services.map(service =>
-      service.id === id ? { ...service, status: newStatus } : service
-    ));
+    try {
+      await api.patch(`/services/${id}`, { status: newStatus });
+      setServices(services.map(service =>
+        service._id === id ? { ...service, status: newStatus } : service
+      ));
+      setFiltered(filtered.map(service =>
+        service._id === id ? { ...service, status: newStatus } : service
+      ));
+    } catch (err) {
+      console.error('Error updating status:', err);
+      alert('Failed to update status');
+    }
   };
 
   return (
@@ -269,7 +244,7 @@ export default function ProviderServicesPage() {
       </div>
 
       {/* Empty State */}
-      {filtered.length === 0 && (
+      {!loading && !error && filtered.length === 0 && (
         <Card className="text-center py-12">
           <CardContent>
             <Wrench className="mx-auto h-12 w-12 text-gray-400 mb-4" />

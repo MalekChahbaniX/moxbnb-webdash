@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import Header from '@/components/moxbnb/Header';
+import Footer from '@/components/moxbnb/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,8 +44,10 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header />
+      <div className="flex-1 py-8">
+        <div className="container mx-auto px-4 max-w-4xl">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">{t('profile.title')}</h1>
@@ -220,7 +224,9 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
+      <Footer />
     </div>
   );
 }

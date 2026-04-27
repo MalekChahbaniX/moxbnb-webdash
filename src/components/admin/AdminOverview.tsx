@@ -1,100 +1,110 @@
 'use client';
 
-import { Users, Home, Calendar, TrendingUp, AlertCircle, CheckCircle, Clock, DollarSign } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Users, Home, Calendar, TrendingUp, AlertCircle, CheckCircle, Clock, DollarSign, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getAdminDashboard } from '@/services/adminService';
 
 export default function AdminOverview() {
-  const stats = [
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dashboardData, setDashboardData] = useState<any>(null);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getAdminDashboard();
+      if (response.success) {
+        setDashboardData(response.data);
+      } else {
+        setError('Erreur lors du chargement des données');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  const stats = dashboardData?.stats ? [
     {
       title: 'Total Utilisateurs',
-      value: '2,458',
-      change: '+12%',
+      value: dashboardData.stats.totalUsers?.toLocaleString() || '0',
       icon: Users,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100'
     },
     {
       title: 'Annonces Actives',
-      value: '1,234',
-      change: '+8%',
+      value: dashboardData.stats.activeListings?.toLocaleString() || '0',
       icon: Home,
       color: 'text-rose-600',
       bgColor: 'bg-rose-100'
     },
     {
-      title: 'Réservations du mois',
-      value: '892',
-      change: '+15%',
+      title: 'Réservations',
+      value: dashboardData.stats.totalBookings?.toLocaleString() || '0',
       icon: Calendar,
       color: 'text-green-600',
       bgColor: 'bg-green-100'
     },
     {
-      title: 'Revenus du mois',
-      value: '245,680 DT',
-      change: '+22%',
+      title: 'Revenus Plateforme',
+      value: (dashboardData.stats.platformRevenue || 0).toLocaleString() + ' DT',
       icon: DollarSign,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100'
     }
-  ];
-
-  const recentActivity = [
-    {
-      type: 'reservation',
-      title: 'Nouvelle réservation - Villa Hammamet',
-      time: 'Il y a 5 minutes',
-      status: 'pending'
-    },
-    {
-      type: 'listing',
-      title: 'Nouvelle annonce soumise - Appartement Tunis',
-      time: 'Il y a 15 minutes',
-      status: 'pending'
-    },
-    {
-      type: 'review',
-      title: 'Nouvel avis signalé - Expérience Djerba',
-      time: 'Il y a 30 minutes',
-      status: 'warning'
-    },
-    {
-      type: 'user',
-      title: 'Nouveau compte créé - Ahmed K.',
-      time: 'Il y a 1 heure',
-      status: 'success'
-    },
-    {
-      type: 'reservation',
-      title: 'Réservation confirmée - Service Massage',
-      time: 'Il y a 2 heures',
-      status: 'success'
-    }
-  ];
+  ] : [];
 
   const pendingActions = [
     {
       type: 'validation',
-      title: '12 annonces en attente de validation',
-      priority: 'high'
+      title: `${dashboardData?.pending?.listings || 0} annonces en attente de validation`,
+      priority: dashboardData?.pending?.listings > 5 ? 'high' : 'medium'
     },
     {
-      type: 'reservation',
-      title: '8 réservations nécessitent une validation',
-      priority: 'high'
+      type: 'service',
+      title: `${dashboardData?.pending?.services || 0} services en attente de validation`,
+      priority: dashboardData?.pending?.services > 3 ? 'high' : 'medium'
+    },
+    {
+      type: 'experience',
+      title: `${dashboardData?.pending?.experiences || 0} expériences en attente de validation`,
+      priority: dashboardData?.pending?.experiences > 3 ? 'high' : 'medium'
     },
     {
       type: 'review',
-      title: '5 avis signalés pour modération',
-      priority: 'medium'
-    },
-    {
-      type: 'payment',
-      title: '3 paiements en attente de traitement',
-      priority: 'medium'
+      title: `${dashboardData?.pending?.reviews || 0} avis signalés pour modération`,
+      priority: dashboardData?.pending?.reviews > 2 ? 'high' : 'medium'
     }
   ];
+
+  const recentActivity: any[] = [];
 
   const getStatusBadge = (status: string) => {
     switch (status) {

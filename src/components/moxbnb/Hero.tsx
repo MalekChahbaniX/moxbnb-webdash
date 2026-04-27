@@ -48,14 +48,14 @@ export default function Hero() {
 
           {/* Soleil stylisé – côté gauche */}
           <circle cx="120" cy="95" r="38" fill="#FFD166" opacity="0.92"/>
-          <line x1="120" y1="40"  x2="120" y2="26"  stroke="#FFD166" stroke-width="4.5" stroke-linecap="round" opacity="0.8"/>
-          <line x1="120" y1="150" x2="120" y2="164" stroke="#FFD166" stroke-width="4.5" stroke-linecap="round" opacity="0.8"/>
-          <line x1="65"  y1="95"  x2="51"  y2="95"  stroke="#FFD166" stroke-width="4.5" stroke-linecap="round" opacity="0.8"/>
-          <line x1="175" y1="95"  x2="189" y2="95"  stroke="#FFD166" stroke-width="4.5" stroke-linecap="round" opacity="0.8"/>
-          <line x1="81"  y1="56"  x2="71"  y2="46"  stroke="#FFD166" stroke-width="4.5" stroke-linecap="round" opacity="0.8"/>
-          <line x1="159" y1="134" x2="169" y2="144" stroke="#FFD166" stroke-width="4.5" stroke-linecap="round" opacity="0.8"/>
-          <line x1="159" y1="56"  x2="169" y2="46"  stroke="#FFD166" stroke-width="4.5" stroke-linecap="round" opacity="0.8"/>
-          <line x1="81"  y1="134" x2="71"  y2="144" stroke="#FFD166" stroke-width="4.5" stroke-linecap="round" opacity="0.8"/>
+          <line x1="120" y1="40"  x2="120" y2="26"  stroke="#FFD166" strokeWidth="4.5" strokeLinecap="round" opacity="0.8"/>
+          <line x1="120" y1="150" x2="120" y2="164" stroke="#FFD166" strokeWidth="4.5" strokeLinecap="round" opacity="0.8"/>
+          <line x1="65"  y1="95"  x2="51"  y2="95"  stroke="#FFD166" strokeWidth="4.5" strokeLinecap="round" opacity="0.8"/>
+          <line x1="175" y1="95"  x2="189" y2="95"  stroke="#FFD166" strokeWidth="4.5" strokeLinecap="round" opacity="0.8"/>
+          <line x1="81"  y1="56"  x2="71"  y2="46"  stroke="#FFD166" strokeWidth="4.5" strokeLinecap="round" opacity="0.8"/>
+          <line x1="159" y1="134" x2="169" y2="144" stroke="#FFD166" strokeWidth="4.5" strokeLinecap="round" opacity="0.8"/>
+          <line x1="159" y1="56"  x2="169" y2="46"  stroke="#FFD166" strokeWidth="4.5" strokeLinecap="round" opacity="0.8"/>
+          <line x1="81"  y1="134" x2="71"  y2="144" stroke="#FFD166" strokeWidth="4.5" strokeLinecap="round" opacity="0.8"/>
 
           {/* Croissant + étoile tunisiens – centre gauche */}
           <g transform="translate(370,78)">
@@ -73,38 +73,38 @@ export default function Hero() {
           <g transform="translate(240,175)">
             <rect x="-6" y="0" width="12" height="70" rx="5" fill="#6B4A1E"/>
             <rect x="-4" y="10" width="7"  height="45" rx="3" fill="#8B6030" opacity="0.45"/>
-            <path d="M0,4 Q-40,-16 -62,-26" fill="none" stroke="#2D7A2D" stroke-width="5.5" stroke-linecap="round"/>
-            <path d="M-62,-26 Q-77,-23 -79,-14" fill="none" stroke="#2D7A2D" stroke-width="3" stroke-linecap="round"/>
-            <path d="M0,4 Q40,-18 58,-30" fill="none" stroke="#2D7A2D" stroke-width="5.5" stroke-linecap="round"/>
-            <path d="M58,-30 Q72,-26 74,-18" fill="none" stroke="#2D7A2D" stroke-width="3" stroke-linecap="round"/>
-            <path d="M0,4 Q-16,-42 -13,-64" fill="none" stroke="#2D7A2D" stroke-width="5" stroke-linecap="round"/>
-            <path d="M-13,-64 Q-5,-74 6,-71" fill="none" stroke="#2D7A2D" stroke-width="3" stroke-linecap="round"/>
-            <path d="M0,4 Q18,-40 19,-60" fill="none" stroke="#2D7A2D" stroke-width="4.5" stroke-linecap="round"/>
-            <path d="M19,-60 Q27,-70 35,-65" fill="none" stroke="#2D7A2D" stroke-width="3" stroke-linecap="round"/>
-            <path d="M0,4 Q-46,-5 -63,-2" fill="none" stroke="#3A9A3A" stroke-width="4" stroke-linecap="round"/>
-            <path d="M0,4 Q44,-3 60,1" fill="none" stroke="#3A9A3A" stroke-width="4" stroke-linecap="round"/>
+            <path d="M0,4 Q-40,-16 -62,-26" fill="none" stroke="#2D7A2D" strokeWidth="5.5" strokeLinecap="round"/>
+            <path d="M-62,-26 Q-77,-23 -79,-14" fill="none" stroke="#2D7A2D" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M0,4 Q40,-18 58,-30" fill="none" stroke="#2D7A2D" strokeWidth="5.5" strokeLinecap="round"/>
+            <path d="M58,-30 Q72,-26 74,-18" fill="none" stroke="#2D7A2D" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M0,4 Q-16,-42 -13,-64" fill="none" stroke="#2D7A2D" strokeWidth="5" strokeLinecap="round"/>
+            <path d="M-13,-64 Q-5,-74 6,-71" fill="none" stroke="#2D7A2D" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M0,4 Q18,-40 19,-60" fill="none" stroke="#2D7A2D" strokeWidth="4.5" strokeLinecap="round"/>
+            <path d="M19,-60 Q27,-70 35,-65" fill="none" stroke="#2D7A2D" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M0,4 Q-46,-5 -63,-2" fill="none" stroke="#3A9A3A" strokeWidth="4" strokeLinecap="round"/>
+            <path d="M0,4 Q44,-3 60,1" fill="none" stroke="#3A9A3A" strokeWidth="4" strokeLinecap="round"/>
           </g>
 
           {/* Oiseaux en vol – groupe 1, centre */}
-          <g fill="none" stroke="#1a4a6b" stroke-linecap="round" opacity="0.7">
-            <path d="M570,52 Q579,44 588,52" stroke-width="3"/>
-            <path d="M595,43 Q604,35 613,43" stroke-width="3"/>
-            <path d="M548,63 Q556,56 564,63" stroke-width="2.5"/>
-            <path d="M618,56 Q626,48 634,56" stroke-width="2.5"/>
-            <path d="M582,72 Q591,64 600,72" stroke-width="2.5"/>
-            <path d="M608,70 Q616,63 624,70" stroke-width="2"/>
+          <g fill="none" stroke="#1a4a6b" strokeLinecap="round" opacity="0.7">
+            <path d="M570,52 Q579,44 588,52" strokeWidth="3"/>
+            <path d="M595,43 Q604,35 613,43" strokeWidth="3"/>
+            <path d="M548,63 Q556,56 564,63" strokeWidth="2.5"/>
+            <path d="M618,56 Q626,48 634,56" strokeWidth="2.5"/>
+            <path d="M582,72 Q591,64 600,72" strokeWidth="2.5"/>
+            <path d="M608,70 Q616,63 624,70" strokeWidth="2"/>
           </g>
 
           {/* Oiseaux en vol – groupe 2, droite */}
-          <g fill="none" stroke="#1a4a6b" stroke-linecap="round" opacity="0.55">
-            <path d="M860,38 Q867,31 874,38" stroke-width="2.5"/>
-            <path d="M879,28 Q886,21 893,28" stroke-width="2.5"/>
-            <path d="M846,49 Q852,43 858,49" stroke-width="2"/>
-            <path d="M897,42 Q903,35 909,42" stroke-width="2"/>
+          <g fill="none" stroke="#1a4a6b" strokeLinecap="round" opacity="0.55">
+            <path d="M860,38 Q867,31 874,38" strokeWidth="2.5"/>
+            <path d="M879,28 Q886,21 893,28" strokeWidth="2.5"/>
+            <path d="M846,49 Q852,43 858,49" strokeWidth="2"/>
+            <path d="M897,42 Q903,35 909,42" strokeWidth="2"/>
           </g>
 
           {/* Étoile filante discrète */}
-          <line x1="720" y1="28" x2="775" y2="56" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.55"/>
+          <line x1="720" y1="28" x2="775" y2="56" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity="0.55"/>
           <circle cx="720" cy="28" r="2.5" fill="white" opacity="0.75"/>
 
           {/* Petites étoiles scintillantes */}
@@ -119,16 +119,16 @@ export default function Hero() {
           <g transform="translate(1010,160)">
             <rect x="-6" y="0" width="12" height="80" rx="5" fill="#6B4A1E"/>
             <rect x="-4" y="12" width="7"  height="50" rx="3" fill="#8B6030" opacity="0.45"/>
-            <path d="M0,5 Q-40,-15 -62,-25" fill="none" stroke="#2D7A2D" stroke-width="5.5" stroke-linecap="round"/>
-            <path d="M-62,-25 Q-77,-21 -79,-12" fill="none" stroke="#2D7A2D" stroke-width="3" stroke-linecap="round"/>
-            <path d="M0,5 Q40,-17 57,-29" fill="none" stroke="#2D7A2D" stroke-width="5.5" stroke-linecap="round"/>
-            <path d="M57,-29 Q71,-25 73,-17" fill="none" stroke="#2D7A2D" stroke-width="3" stroke-linecap="round"/>
-            <path d="M0,5 Q-16,-44 -12,-66" fill="none" stroke="#2D7A2D" stroke-width="5" stroke-linecap="round"/>
-            <path d="M-12,-66 Q-4,-76 7,-73" fill="none" stroke="#2D7A2D" stroke-width="3" stroke-linecap="round"/>
-            <path d="M0,5 Q18,-42 18,-62" fill="none" stroke="#2D7A2D" stroke-width="4.5" stroke-linecap="round"/>
-            <path d="M18,-62 Q26,-72 34,-67" fill="none" stroke="#2D7A2D" stroke-width="3" stroke-linecap="round"/>
-            <path d="M0,5 Q-46,-4 -63,-1" fill="none" stroke="#3A9A3A" stroke-width="4" stroke-linecap="round"/>
-            <path d="M0,5 Q44,-2 60,2" fill="none" stroke="#3A9A3A" stroke-width="4" stroke-linecap="round"/>
+            <path d="M0,5 Q-40,-15 -62,-25" fill="none" stroke="#2D7A2D" strokeWidth="5.5" strokeLinecap="round"/>
+            <path d="M-62,-25 Q-77,-21 -79,-12" fill="none" stroke="#2D7A2D" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M0,5 Q40,-17 57,-29" fill="none" stroke="#2D7A2D" strokeWidth="5.5" strokeLinecap="round"/>
+            <path d="M57,-29 Q71,-25 73,-17" fill="none" stroke="#2D7A2D" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M0,5 Q-16,-44 -12,-66" fill="none" stroke="#2D7A2D" strokeWidth="5" strokeLinecap="round"/>
+            <path d="M-12,-66 Q-4,-76 7,-73" fill="none" stroke="#2D7A2D" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M0,5 Q18,-42 18,-62" fill="none" stroke="#2D7A2D" strokeWidth="4.5" strokeLinecap="round"/>
+            <path d="M18,-62 Q26,-72 34,-67" fill="none" stroke="#2D7A2D" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M0,5 Q-46,-4 -63,-1" fill="none" stroke="#3A9A3A" strokeWidth="4" strokeLinecap="round"/>
+            <path d="M0,5 Q44,-2 60,2" fill="none" stroke="#3A9A3A" strokeWidth="4" strokeLinecap="round"/>
           </g>
 
           {/* ══════════════════════════════════════

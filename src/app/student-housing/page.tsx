@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Header from '@/components/moxbnb/Header';
 import Footer from '@/components/moxbnb/Footer';
@@ -34,7 +34,7 @@ interface StudentListing {
   reviews?: number;
 }
 
-export default function StudentHousingPage() {
+function StudentHousingContent() {
   const [listings, setListings] = useState<StudentListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -226,5 +226,20 @@ export default function StudentHousingPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function StudentHousingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="h-8 w-8 animate-spin text-rose-600 mx-auto mb-4" />
+          <p>Chargement...</p>
+        </div>
+      </div>
+    }>
+      <StudentHousingContent />
+    </Suspense>
   );
 }

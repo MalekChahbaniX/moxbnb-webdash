@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Calendar, MapPin, Clock, Users, Star, CheckCircle, AlertCircle, ArrowLeft, CreditCard, Shield } from 'lucide-react';
 import { addDays, format } from 'date-fns';
@@ -15,7 +15,7 @@ import Header from '@/components/moxbnb/Header';
 import Footer from '@/components/moxbnb/Footer';
 import { useAuth } from '@/contexts/AuthContext';
 
-export default function BookingConfirmPage() {
+function BookingConfirmContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -175,7 +175,7 @@ export default function BookingConfirmPage() {
                     </div>
                     <div>
                       <Label className="text-sm text-gray-600">Voyageurs</Label>
-                      <p className="font-medium mt-1">{guests} voyageur{parseInt(guests || '1') > 1 ? 's' : ''}</p>
+                      <p className="font-medium mt-1">{guests} voyageur{(guests || 1) > 1 ? 's' : ''}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -331,5 +331,20 @@ export default function BookingConfirmPage() {
       </div>
       <Footer />
     </div>
+  );
+}
+
+export default function BookingConfirmPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mx-auto mb-4"></div>
+          <p>Chargement...</p>
+        </div>
+      </div>
+    }>
+      <BookingConfirmContent />
+    </Suspense>
   );
 }

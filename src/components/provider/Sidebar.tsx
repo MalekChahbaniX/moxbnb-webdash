@@ -11,12 +11,14 @@ import {
   Settings, 
   Users,
   TrendingUp,
-  DollarSign
+  DollarSign,
+  Mountain
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Tableau de Bord', href: '/provider/dashboard', icon: Home },
   { name: 'Mes Services', href: '/provider/services', icon: Wrench },
+  { name: 'Mes Expériences', href: '/provider/experiences', icon: Mountain },
   { name: 'Calendrier', href: '/provider/calendar', icon: Calendar },
   { name: 'Réservations', href: '/provider/bookings', icon: Calendar },
   { name: 'Messages', href: '/provider/messages', icon: MessageSquare },

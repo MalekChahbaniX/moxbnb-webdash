@@ -34,13 +34,24 @@ export default function ProviderServicesPage() {
     const fetchServices = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/provider/services');
+        console.log('Fetching services from /services/my...');
+        const response = await api.get('/services/my');
+        console.log('API Response:', response);
+        console.log('Response data:', response.data);
+        
         const servicesData = response.data?.data || response.data;
+        console.log('Services data extracted:', servicesData);
+        console.log('Services data type:', typeof servicesData);
+        console.log('Services data length:', Array.isArray(servicesData) ? servicesData.length : 'Not an array');
+        
         setServices(servicesData);
         setFiltered(servicesData);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching services:', err);
-        setError('Failed to load services');
+        console.error('Error response:', err.response);
+        console.error('Error status:', err.response?.status);
+        console.error('Error data:', err.response?.data);
+        setError(`Failed to load services: ${err.response?.data?.error || err.message}`);
       } finally {
         setLoading(false);
       }
@@ -62,7 +73,7 @@ export default function ProviderServicesPage() {
 
     // Filter by category
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter(service => service.type === categoryFilter);
+      filtered = filtered.filter(service => service.category === categoryFilter);
     }
 
     setFiltered(filtered);
@@ -151,17 +162,17 @@ export default function ProviderServicesPage() {
       {/* Services Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map((service) => (
-          <Card key={service.id} className="overflow-hidden">
+          <Card key={service._id} className="overflow-hidden">
             {/* Image */}
             <div className="aspect-video bg-gray-200 relative">
               <img 
-                src={service.images[0] || '/api/placeholder/400/300'} 
+                src={service.images?.[0] || '/api/placeholder/400/300'} 
                 alt={service.title}
                 className="w-full h-full object-cover"
               />
               <div className="absolute top-2 right-2">
-                <Badge variant={service.status === 'active' ? 'default' : 'secondary'}>
-                  {service.status === 'active' ? 'Actif' : 'Inactif'}
+                <Badge variant={service.status === 'PUBLISHED' ? 'default' : 'secondary'}>
+                  {service.status === 'PUBLISHED' ? 'Actif' : 'Inactif'}
                 </Badge>
               </div>
             </div>
@@ -174,11 +185,11 @@ export default function ProviderServicesPage() {
                   <Wrench className="mr-1 h-4 w-4" />
                   <span className="capitalize">{service.category}</span>
                   <span className="mx-2">•</span>
-                  <span>{service.city}, {service.country}</span>
+                  <span>{service.city || 'Non spécifiée'}, {service.country || 'Tunisie'}</span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <Clock className="mr-1 h-4 w-4" />
-                  <span>{service.duration}</span>
+                  <span>{service.duration} min</span>
                 </div>
               </div>
 
@@ -189,41 +200,27 @@ export default function ProviderServicesPage() {
                   <span>{service.price} TND</span>
                 </div>
                 <div className="flex items-center">
-                  <span className="mr-1">👥</span>
-                  <span>{service.maxGuests} clients max</span>
+                  <span className="mr-1">�</span>
+                  <span>Créé le {new Date(service.createdAt).toLocaleDateString()}</span>
                 </div>
               </div>
 
-              {/* Stats */}
-              <div className="flex items-center justify-between mb-3 text-sm">
-                <div className="flex items-center">
-                  <Star className="mr-1 h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <span className="font-medium">{service.rating}</span>
-                  <span className="text-gray-500 ml-1">({service.reviews})</span>
-                </div>
-                <div className="text-gray-600">
-                  <Calendar className="mr-1 h-4 w-4" />
-                  <span>{service.bookings} réservations</span>
-                </div>
-              </div>
-
-              {/* Revenue */}
-              <div className="mb-4">
-                <div className="text-lg font-semibold text-green-600">
-                  {service.revenue.toLocaleString()} TND
-                </div>
-                <div className="text-xs text-gray-500">Revenus totaux</div>
+              {/* Description preview */}
+              <div className="mb-3">
+                <p className="text-sm text-gray-600 line-clamp-2">
+                  {service.description?.substring(0, 100)}...
+                </p>
               </div>
 
               {/* Actions */}
               <div className="flex space-x-2">
-                <Link href={`/provider/services/${service.id}`}>
+                <Link href={`/provider/services/${service._id}`}>
                   <Button variant="outline" size="sm">
                     <Eye className="mr-1 h-4 w-4" />
                     Voir
                   </Button>
                 </Link>
-                <Link href={`/provider/services/${service.id}/edit`}>
+                <Link href={`/provider/services/${service._id}/edit`}>
                   <Button variant="outline" size="sm">
                     <Edit className="mr-1 h-4 w-4" />
                     Modifier
@@ -232,7 +229,7 @@ export default function ProviderServicesPage() {
                 <Button 
                   variant="destructive" 
                   size="sm"
-                  onClick={() => handleDelete(service.id)}
+                  onClick={() => handleDelete(service._id)}
                 >
                   <Trash2 className="mr-1 h-4 w-4" />
                   Supprimer

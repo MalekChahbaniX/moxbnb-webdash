@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/moxbnb/Header';
 import Footer from '@/components/moxbnb/Footer';
 import { Button } from '@/components/ui/button';
@@ -12,22 +13,38 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, Clock, MapPin, User, Star, Filter, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import Link from 'next/link';
+import BookingDetailsModal from '@/components/moxbnb/BookingDetailsModal';
+import BookingEditModal from '@/components/moxbnb/BookingEditModal';
 
 export default function BookingsPage() {
   const { user, isAuthenticated } = useAuth();
   const { t } = useLanguage();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('upcoming');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [bookings, setBookings] = useState<any>(null);
+  const [bookings, setBookings] = useState<any>({ upcoming: [], past: [], cancelled: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchBookings = async () => {
       try {
         setLoading(true);
         const response = await api.get('/bookings');
-        setBookings(response.data?.data || response.data);
+        console.log('Bookings response:', response.data);
+        const bookingsData = response.data?.data || response.data;
+        
+        // Group bookings by status
+        const groupedBookings = {
+          upcoming: bookingsData.filter((b: any) => b.status === 'PENDING' || b.status === 'CONFIRMED'),
+          past: bookingsData.filter((b: any) => b.status === 'COMPLETED'),
+          cancelled: bookingsData.filter((b: any) => b.status === 'CANCELLED')
+        };
+        
+        setBookings(groupedBookings);
       } catch (err) {
         console.error('Error fetching bookings:', err);
         setError('Failed to load bookings');
@@ -98,6 +115,71 @@ export default function BookingsPage() {
     }
   };
 
+  const handleModifyBooking = async (booking: any) => {
+    try {
+      setSelectedBooking(booking);
+      setIsEditModalOpen(true);
+    } catch (err) {
+      console.error('Error opening edit modal:', err);
+    }
+  };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir annuler cette réservation ?')) {
+      return;
+    }
+
+    try {
+      await api.patch(`/bookings/${bookingId}/cancel`);
+      // Refresh bookings list
+      window.location.reload();
+    } catch (err) {
+      console.error('Error cancelling booking:', err);
+      alert('Erreur lors de l\'annulation de la réservation');
+    }
+  };
+
+  const handleConfirmBooking = async (bookingId: string) => {
+    try {
+      await api.patch(`/bookings/${bookingId}/confirm`);
+      // Refresh bookings list
+      window.location.reload();
+    } catch (err) {
+      console.error('Error confirming booking:', err);
+      alert('Erreur lors de la confirmation de la réservation');
+    }
+  };
+
+  const handleViewDetails = (booking: any) => {
+    setSelectedBooking(booking);
+    setIsDetailsModalOpen(true);
+  };
+
+  const handleEditBooking = (booking: any) => {
+    setSelectedBooking(booking);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async (updatedBooking: any) => {
+    try {
+      await api.patch(`/bookings/${updatedBooking._id}`, {
+        checkIn: updatedBooking.checkIn,
+        checkOut: updatedBooking.checkOut,
+        guests: updatedBooking.guests
+      });
+      
+      // Refresh bookings list
+      window.location.reload();
+    } catch (err) {
+      console.error('Error updating booking:', err);
+      alert('Erreur lors de la mise à jour de la réservation');
+    }
+  };
+
+  const handleRateBooking = (bookingId: string) => {
+    router.push(`/bookings/${bookingId}/review`);
+  };
+
   const BookingCard = ({ booking }: { booking: any }) => (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-6">
@@ -105,8 +187,8 @@ export default function BookingsPage() {
           {/* Property Image */}
           <div className="md:w-48 h-32 rounded-lg overflow-hidden flex-shrink-0">
             <img
-              src={booking.propertyImage}
-              alt={booking.propertyTitle}
+              src={booking.listingId?.images?.[0] || booking.propertyImage || '/api/placeholder/200/150'}
+              alt={booking.listingId?.title || booking.propertyTitle}
               className="w-full h-full object-cover"
             />
           </div>
@@ -115,10 +197,10 @@ export default function BookingsPage() {
           <div className="flex-1 space-y-3">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="font-semibold text-lg">{booking.propertyTitle}</h3>
+                <h3 className="font-semibold text-lg">{booking.listingId?.title || booking.propertyTitle}</h3>
                 <p className="text-sm text-gray-600 flex items-center mt-1">
                   <User className="h-4 w-4 mr-1" />
-                  {booking.hostName}
+                  {booking.userId?.firstName || booking.hostName}
                 </p>
               </div>
               {getStatusBadge(booking.status)}
@@ -150,7 +232,7 @@ export default function BookingsPage() {
                 <Star className="h-4 w-4 mr-1 text-yellow-500" />
                 <div>
                   <p className="text-xs text-gray-500">Note</p>
-                  <p className="font-medium">{booking.rating}</p>
+                  <p className="font-medium">{booking.rating || 'N/A'}</p>
                 </div>
               </div>
             </div>
@@ -160,20 +242,20 @@ export default function BookingsPage() {
               <div className="flex gap-2">
                 {booking.status === 'CONFIRMED' && (
                   <>
-                    <Button variant="outline" size="sm">Modifier</Button>
-                    <Button variant="destructive" size="sm">Annuler</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleModifyBooking(booking)}>Modifier</Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleCancelBooking(booking._id)}>Annuler</Button>
                   </>
                 )}
                 {booking.status === 'PENDING' && (
                   <>
-                    <Button size="sm">Confirmer</Button>
-                    <Button variant="outline" size="sm">Annuler</Button>
+                    <Button size="sm" onClick={() => handleConfirmBooking(booking._id)}>Confirmer</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleCancelBooking(booking._id)}>Annuler</Button>
                   </>
                 )}
                 {booking.status === 'COMPLETED' && !booking.userRating && (
-                  <Button size="sm">Noter</Button>
+                  <Button size="sm" onClick={() => handleRateBooking(booking._id)}>Noter</Button>
                 )}
-                <Button variant="ghost" size="sm">Détails</Button>
+                <Button variant="ghost" size="sm" onClick={() => handleViewDetails(booking)}>Détails</Button>
               </div>
             </div>
           </div>
@@ -202,9 +284,9 @@ export default function BookingsPage() {
             </TabsList>
 
             <TabsContent value="upcoming" className="space-y-4">
-              {bookings.upcoming.length > 0 ? (
+              {(bookings.upcoming?.length || 0) > 0 ? (
                 bookings.upcoming.map((booking) => (
-                  <BookingCard key={booking.id} booking={booking} />
+                  <BookingCard key={booking._id} booking={booking} />
                 ))
               ) : (
                 <Card>
@@ -220,9 +302,9 @@ export default function BookingsPage() {
             </TabsContent>
 
             <TabsContent value="past" className="space-y-4">
-              {bookings.past.length > 0 ? (
+              {(bookings.past?.length || 0) > 0 ? (
                 bookings.past.map((booking) => (
-                  <BookingCard key={booking.id} booking={booking} />
+                  <BookingCard key={booking._id} booking={booking} />
                 ))
               ) : (
                 <Card>
@@ -235,9 +317,9 @@ export default function BookingsPage() {
             </TabsContent>
 
             <TabsContent value="cancelled" className="space-y-4">
-              {bookings.cancelled.length > 0 ? (
+              {(bookings.cancelled?.length || 0) > 0 ? (
                 bookings.cancelled.map((booking) => (
-                  <BookingCard key={booking.id} booking={booking} />
+                  <BookingCard key={booking._id} booking={booking} />
                 ))
               ) : (
                 <Card>
@@ -252,6 +334,27 @@ export default function BookingsPage() {
         </div>
       </div>
       <Footer />
+      
+      {/* Booking Details Modal */}
+      <BookingDetailsModal
+        booking={selectedBooking}
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false);
+          setSelectedBooking(null);
+        }}
+      />
+      
+      {/* Booking Edit Modal */}
+      <BookingEditModal
+        booking={selectedBooking}
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedBooking(null);
+        }}
+        onSave={handleSaveEdit}
+      />
     </div>
   );
 }

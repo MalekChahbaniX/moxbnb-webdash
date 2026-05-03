@@ -127,7 +127,7 @@ export default function ProviderEarningsPage() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{earnings.totalEarnings.toLocaleString()} TND</div>
+                <div className="text-2xl font-bold">{(earnings.totalEarnings || 0).toLocaleString()} TND</div>
                 <p className="text-xs text-muted-foreground">
                   Depuis le début
                 </p>
@@ -140,9 +140,9 @@ export default function ProviderEarningsPage() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{earnings.currentMonthEarnings.toLocaleString()} TND</div>
+                <div className="text-2xl font-bold">{(earnings.currentMonthEarnings || 0).toLocaleString()} TND</div>
                 <p className="text-xs text-muted-foreground">
-                  +{Math.round(((earnings.currentMonthEarnings - earnings.lastMonthEarnings) / earnings.lastMonthEarnings) * 100)}% par rapport au mois dernier
+                  +{earnings.lastMonthEarnings ? Math.round(((earnings.currentMonthEarnings - earnings.lastMonthEarnings) / earnings.lastMonthEarnings) * 100) : 0}% par rapport au mois dernier
                 </p>
               </CardContent>
             </Card>
@@ -153,7 +153,7 @@ export default function ProviderEarningsPage() {
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{earnings.averageMonthlyEarnings.toLocaleString()} TND</div>
+                <div className="text-2xl font-bold">{(earnings.averageMonthlyEarnings || 0).toLocaleString()} TND</div>
                 <p className="text-xs text-muted-foreground">
                   Sur 12 derniers mois
                 </p>
@@ -166,7 +166,7 @@ export default function ProviderEarningsPage() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{earnings.pendingPayouts.toLocaleString()} TND</div>
+                <div className="text-2xl font-bold">{(earnings.pendingPayouts || 0).toLocaleString()} TND</div>
                 <p className="text-xs text-muted-foreground">
                   À traiter
                 </p>
@@ -182,7 +182,7 @@ export default function ProviderEarningsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {earnings.earningsByService.map((service) => (
+                {(earnings.earningsByService || []).map((service) => (
                   <div key={service.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex-1">
                       <h3 className="font-semibold">{service.title}</h3>
@@ -194,7 +194,7 @@ export default function ProviderEarningsPage() {
                     </div>
                     <div className="text-right">
                       <div className="text-lg font-bold text-green-600">
-                        {service.netEarnings.toLocaleString()} TND
+                        {service.netEarnings ? service.netEarnings.toLocaleString() : 0} TND
                       </div>
                       <div className="text-xs text-gray-500">Net</div>
                     </div>
@@ -212,11 +212,11 @@ export default function ProviderEarningsPage() {
             </CardHeader>
             <CardContent>
               <div className="h-64 flex items-end justify-between">
-                {earnings.monthlyEarnings.map((month, index) => (
+                {(earnings.monthlyEarnings || []).map((month, index) => (
                   <div key={month.month} className="flex flex-col items-center flex-1">
                     <div 
                       className="w-full bg-blue-500 rounded-t"
-                      style={{ height: `${(month.earnings / Math.max(...earnings.monthlyEarnings.map(m => m.earnings))) * 200}px` }}
+                      style={{ height: `${month.earnings && earnings.monthlyEarnings.length > 0 ? (month.earnings / Math.max(...earnings.monthlyEarnings.map(m => m.earnings))) * 200 : 0}px` }}
                     />
                     <div className="text-xs mt-2 text-center">{month.month.substring(0, 3)}</div>
                     <div className="text-xs text-center text-gray-600">{month.earnings} TND</div>
@@ -236,7 +236,7 @@ export default function ProviderEarningsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {earnings.recentTransactions.map((transaction) => (
+              {(earnings.recentTransactions || []).map((transaction) => (
                 <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3">
@@ -253,7 +253,7 @@ export default function ProviderEarningsPage() {
                     <div className={`text-lg font-bold ${
                       transaction.status === 'completed' ? 'text-green-600' : 'text-yellow-600'
                     }`}>
-                      {transaction.amount.toLocaleString()} TND
+                      {transaction.amount ? transaction.amount.toLocaleString() : 0} TND
                     </div>
                     <div className={`text-xs ${
                       transaction.status === 'completed' ? 'text-green-600' : 'text-yellow-600'

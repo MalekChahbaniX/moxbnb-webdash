@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import { Calendar, MapPin, Clock, Users, Star, CheckCircle, AlertCircle, ArrowLeft, CreditCard, Shield } from 'lucide-react';
+import { Calendar, MapPin, Clock, Users, Star, CheckCircle, AlertCircle, ArrowLeft, CreditCard, Shield, Smartphone, Wallet } from 'lucide-react';
 import { addDays, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -20,8 +20,18 @@ function BookingConfirmContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const propertyId = searchParams.get('propertyId');
-  const [checkIn, setCheckIn] = useState<Date | undefined>(new Date(searchParams.get('checkIn') || ''));
-  const [checkOut, setCheckOut] = useState<Date | undefined>(new Date(searchParams.get('checkOut') || ''));
+  const [checkIn, setCheckIn] = useState<Date | undefined>(() => {
+    const checkInParam = searchParams.get('checkIn');
+    if (!checkInParam) return undefined;
+    const date = new Date(checkInParam);
+    return isNaN(date.getTime()) ? undefined : date;
+  });
+  const [checkOut, setCheckOut] = useState<Date | undefined>(() => {
+    const checkOutParam = searchParams.get('checkOut');
+    if (!checkOutParam) return undefined;
+    const date = new Date(checkOutParam);
+    return isNaN(date.getTime()) ? undefined : date;
+  });
   const [guests, setGuests] = useState(parseInt(searchParams.get('guests') || '2'));
   const [property, setProperty] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -29,6 +39,7 @@ function BookingConfirmContent() {
   const { user, isAuthenticated } = useAuth();
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'mobile'>('card');
   const [cardNumber, setCardNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [cvv, setCvv] = useState('');
@@ -44,7 +55,9 @@ function BookingConfirmContent() {
       try {
         setLoading(true);
         const response = await api.get(`/listings/${propertyId}`);
-        setProperty(response.data?.data || response.data);
+        const propertyData = response.data?.data?.listing || response.data?.data || response.data;
+        console.log('Booking confirm property data:', propertyData);
+        setProperty(propertyData);
       } catch (err) {
         console.error('Error fetching property:', err);
         setError('Failed to load property');
@@ -61,6 +74,46 @@ function BookingConfirmContent() {
       router.push('/login');
     }
   }, [isAuthenticated, router]);
+
+  const handleConfirmBooking = async () => {
+    if (paymentMethod === 'card' && (!cardNumber || !expiryDate || !cvv || !cardName)) {
+      alert('Veuillez remplir tous les champs de paiement');
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const bookingData = {
+        type: 'PROPERTY',
+        listingId: propertyId,
+        checkIn: checkInDate.toISOString(),
+        checkOut: checkOutDate.toISOString(),
+        guests,
+        totalPrice: grandTotal,
+        currency: 'TND',
+        paymentStatus: paymentMethod === 'cash' ? 'PENDING' : 'PROCESSING',
+        paymentProvider: paymentMethod === 'card' ? 'STRIPE' : undefined
+      };
+
+      const response = await api.post('/bookings', bookingData);
+
+      if (response.data?.success) {
+        router.push('/bookings?success=true');
+      } else {
+        throw new Error('Booking creation failed');
+      }
+    } catch (err) {
+      console.error('Error creating booking:', err);
+      alert('Erreur lors de la création de la réservation. Veuillez réessayer.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   if (loading) {
     return (
@@ -86,36 +139,12 @@ function BookingConfirmContent() {
 
   const checkInDate = checkIn ? new Date(checkIn) : new Date();
   const checkOutDate = checkOut ? new Date(checkOut) : new Date();
-  const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
-  const totalPrice = property.price * nights;
+  const nights = Math.max(1, Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24)));
+  const price = property.price || 0;
+  const totalPrice = price * nights;
   const cleaningFee = 50;
   const serviceFee = Math.round(totalPrice * 0.1);
   const grandTotal = totalPrice + cleaningFee + serviceFee;
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, router]);
-
-  const handleConfirmBooking = async () => {
-    if (!cardNumber || !expiryDate || !cvv || !cardName) {
-      alert('Veuillez remplir tous les champs de paiement');
-      return;
-    }
-
-    setIsProcessing(true);
-
-    // Simulate booking API call
-    setTimeout(() => {
-      setIsProcessing(false);
-      router.push('/bookings?success=true');
-    }, 2000);
-  };
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -190,49 +219,103 @@ function BookingConfirmContent() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="cardName">Nom sur la carte</Label>
-                    <Input
-                      id="cardName"
-                      placeholder="JEAN DUPONT"
-                      value={cardName}
-                      onChange={(e) => setCardName(e.target.value)}
-                    />
+                  {/* Payment Method Selection */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <Button
+                      type="button"
+                      variant={paymentMethod === 'card' ? 'default' : 'outline'}
+                      className={paymentMethod === 'card' ? 'bg-rose-600 hover:bg-rose-700' : ''}
+                      onClick={() => setPaymentMethod('card')}
+                    >
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Carte
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={paymentMethod === 'mobile' ? 'default' : 'outline'}
+                      className={paymentMethod === 'mobile' ? 'bg-rose-600 hover:bg-rose-700' : ''}
+                      onClick={() => setPaymentMethod('mobile')}
+                    >
+                      <Smartphone className="h-4 w-4 mr-2" />
+                      Mobile
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={paymentMethod === 'cash' ? 'default' : 'outline'}
+                      className={paymentMethod === 'cash' ? 'bg-rose-600 hover:bg-rose-700' : ''}
+                      onClick={() => setPaymentMethod('cash')}
+                    >
+                      <Wallet className="h-4 w-4 mr-2" />
+                      Espèces
+                    </Button>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="cardNumber">Numéro de carte</Label>
-                    <Input
-                      id="cardNumber"
-                      placeholder="1234 5678 9012 3456"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                      maxLength={19}
-                    />
-                  </div>
+                  {/* Card Payment Form */}
+                  {paymentMethod === 'card' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="cardName">Nom sur la carte</Label>
+                        <Input
+                          id="cardName"
+                          placeholder="JEAN DUPONT"
+                          value={cardName}
+                          onChange={(e) => setCardName(e.target.value)}
+                        />
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="expiryDate">Date d'expiration</Label>
-                      <Input
-                        id="expiryDate"
-                        placeholder="MM/AA"
-                        value={expiryDate}
-                        onChange={(e) => setExpiryDate(e.target.value)}
-                        maxLength={5}
-                      />
+                      <div className="space-y-2">
+                        <Label htmlFor="cardNumber">Numéro de carte</Label>
+                        <Input
+                          id="cardNumber"
+                          placeholder="1234 5678 9012 3456"
+                          value={cardNumber}
+                          onChange={(e) => setCardNumber(e.target.value)}
+                          maxLength={19}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="expiryDate">Date d'expiration</Label>
+                          <Input
+                            id="expiryDate"
+                            placeholder="MM/AA"
+                            value={expiryDate}
+                            onChange={(e) => setExpiryDate(e.target.value)}
+                            maxLength={5}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="cvv">CVV</Label>
+                          <Input
+                            id="cvv"
+                            placeholder="123"
+                            value={cvv}
+                            onChange={(e) => setCvv(e.target.value)}
+                            maxLength={3}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Mobile Payment Info */}
+                  {paymentMethod === 'mobile' && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm text-blue-800">
+                        Vous serez redirigé vers l'application de paiement mobile (D17, Flouci, etc.) après confirmation.
+                      </p>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cvv">CVV</Label>
-                      <Input
-                        id="cvv"
-                        placeholder="123"
-                        value={cvv}
-                        onChange={(e) => setCvv(e.target.value)}
-                        maxLength={3}
-                      />
+                  )}
+
+                  {/* Cash Payment Info */}
+                  {paymentMethod === 'cash' && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <p className="text-sm text-green-800">
+                        Paiement en espèces à l'arrivée. Veuillez préparer le montant exact.
+                      </p>
                     </div>
-                  </div>
+                  )}
 
                   <div className="flex items-center space-x-2 text-sm text-gray-600 mt-4">
                     <Shield className="h-4 w-4" />
@@ -286,22 +369,22 @@ function BookingConfirmContent() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">
-                      {property.price} DT x {nights} nuit{nights > 1 ? 's' : ''}
+                      {price} DT x {nights} nuit{nights > 1 ? 's' : ''}
                     </span>
                     <span className="font-medium">{totalPrice} DT</span>
                   </div>
 
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Prix par nuit</span>
-                    <span className="font-medium">{property.price} TND</span>
+                    <span className="font-medium">{price} DT</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Nuits</span>
-                    <span className="font-medium">{checkIn && checkOut ? Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)) : 0}</span>
+                    <span className="font-medium">{nights}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Frais de service</span>
-                    <span className="font-medium">{serviceFee} TND</span>
+                    <span className="font-medium">{serviceFee} DT</span>
                   </div>
 
                   <Separator />

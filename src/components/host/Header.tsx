@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import MessageNotification from '@/components/moxbnb/MessageNotification';
 
 export function Header() {
   const { user, logout } = useAuth();
@@ -45,10 +46,8 @@ export function Header() {
 
           {/* Right side */}
           <div className="flex items-center space-x-4">
-            {/* Notifications */}
-            <Button variant="ghost" size="sm">
-              <Bell className="h-5 w-5" />
-            </Button>
+            {/* Message Notifications */}
+            <MessageNotification />
 
             {/* User Menu */}
             <div className="flex items-center space-x-3">

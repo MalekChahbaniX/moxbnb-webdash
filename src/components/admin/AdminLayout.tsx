@@ -18,15 +18,15 @@ export default function AdminLayout({ children, activeSection, setActiveSection 
   const { logout } = useAuth();
 
   const sidebarItems = [
-    { id: 'overview', icon: LayoutDashboard, label: 'Vue d\'ensemble' },
-    { id: 'reservations', icon: CalendarCheck, label: 'Gestion des Réservations' },
-    { id: 'listings', icon: Home, label: 'Validation des Annonces' },
-    { id: 'experiences', icon: Compass, label: 'Validation Expériences' },
-    { id: 'services', icon: Briefcase, label: 'Gestion des Services' },
-    { id: 'users', icon: Users, label: 'Gestion des Utilisateurs' },
-    { id: 'reviews', icon: Star, label: 'Modération des Avis' },
-    { id: 'statistics', icon: BarChart3, label: 'Statistiques' },
-    { id: 'settings', icon: Settings, label: 'Paramètres' },
+    { id: 'overview', icon: LayoutDashboard, label: t('admin.overview') },
+    { id: 'reservations', icon: CalendarCheck, label: t('admin.reservations') },
+    { id: 'listings', icon: Home, label: t('admin.listings') },
+    { id: 'experiences', icon: Compass, label: t('admin.experiences') },
+    { id: 'services', icon: Briefcase, label: t('admin.services') },
+    { id: 'users', icon: Users, label: t('admin.users') },
+    { id: 'reviews', icon: Star, label: t('admin.reviews') },
+    { id: 'statistics', icon: BarChart3, label: t('admin.statistics') },
+    { id: 'settings', icon: Settings, label: t('admin.settings') },
   ];
 
   return (
@@ -73,7 +73,7 @@ export default function AdminLayout({ children, activeSection, setActiveSection 
               }}
             >
               <LogOut className="h-4 w-4 mr-2" />
-              Déconnexion
+              {t('auth.logout')}
             </Button>
           </div>
         </aside>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Menu, X, Globe, User, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import MessageNotification from '@/components/moxbnb/MessageNotification';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -116,6 +117,11 @@ export default function Header() {
               </select>
             </div>
             
+            {/* Message Notifications */}
+            {isAuthenticated && user && (
+              <MessageNotification />
+            )}
+            
             {loading ? (
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-rose-600"></div>
             ) : isAuthenticated && user ? (
@@ -134,6 +140,11 @@ export default function Header() {
                   <Link href="/bookings" className="block w-full">
                     <DropdownMenuItem>
                       Mes Réservations
+                    </DropdownMenuItem>
+                  </Link>
+                  <Link href="/messages" className="block w-full">
+                    <DropdownMenuItem>
+                      Messages
                     </DropdownMenuItem>
                   </Link>
                   <DropdownMenuSeparator />
@@ -200,6 +211,13 @@ export default function Header() {
                   <option value="ar">{t('common.arabic')}</option>
                 </select>
               </div>
+
+              {/* Message Notifications - Mobile */}
+              {isAuthenticated && user && (
+                <div className="px-2 py-1">
+                  <MessageNotification />
+                </div>
+              )}
 
               {loading ? (
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-rose-600"></div>

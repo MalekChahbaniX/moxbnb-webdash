@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import SplashScreenWrapper from "@/components/SplashScreenWrapper";
+import MessageNotification from '@/components/moxbnb/MessageNotification';
 
 const inter = Inter({
   variable: "--font-inter",
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Moxbnb - Locations et Expériences en Tunisie",
     description: "Plateforme nationale de locations de logements, expériences et services en Tunisie",
-    url: "https://moxbnb.tn",
+    url: "https://moxbnb.netlify.app",
     siteName: "Moxbnb",
     type: "website",
   },
@@ -45,6 +46,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossOrigin="anonymous"
+        />
+      </head>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}
       >

@@ -31,13 +31,31 @@ export default function AdminReservations() {
   const [reservations, setReservations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statistics, setStatistics] = useState({
+    pending: 0,
+    confirmed: 0,
+    cancelled: 0,
+    totalRevenue: 0
+  });
 
   useEffect(() => {
     const fetchReservations = async () => {
       try {
         setLoading(true);
         const response = await api.get('/bookings');
-        setReservations(response.data?.data || response.data);
+        const reservationsData = response.data?.data || response.data;
+        setReservations(reservationsData);
+        
+        // Calculate statistics from reservations data
+        const stats = {
+          pending: reservationsData.filter((r: any) => r.status === 'pending').length,
+          confirmed: reservationsData.filter((r: any) => r.status === 'confirmed').length,
+          cancelled: reservationsData.filter((r: any) => ['cancelled', 'rejected'].includes(r.status)).length,
+          totalRevenue: reservationsData
+            .filter((r: any) => r.status === 'confirmed')
+            .reduce((sum: number, r: any) => sum + (parseFloat(r.totalPrice) || 0), 0)
+        };
+        setStatistics(stats);
       } catch (err) {
         console.error('Error fetching reservations:', err);
         setError('Failed to load reservations');
@@ -182,7 +200,7 @@ export default function AdminReservations() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">En attente</p>
-                <p className="text-2xl font-bold text-yellow-600">12</p>
+                <p className="text-2xl font-bold text-yellow-600">{statistics.pending}</p>
               </div>
               <Clock className="h-8 w-8 text-yellow-600" />
             </div>
@@ -193,7 +211,7 @@ export default function AdminReservations() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Confirmées</p>
-                <p className="text-2xl font-bold text-green-600">856</p>
+                <p className="text-2xl font-bold text-green-600">{statistics.confirmed}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
@@ -204,7 +222,7 @@ export default function AdminReservations() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Annulées</p>
-                <p className="text-2xl font-bold text-red-600">24</p>
+                <p className="text-2xl font-bold text-red-600">{statistics.cancelled}</p>
               </div>
               <XCircle className="h-8 w-8 text-red-600" />
             </div>
@@ -215,7 +233,7 @@ export default function AdminReservations() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total revenus</p>
-                <p className="text-2xl font-bold text-purple-600">245.6K DT</p>
+                <p className="text-2xl font-bold text-purple-600">{statistics.totalRevenue.toLocaleString()} DT</p>
               </div>
             </div>
           </CardContent>

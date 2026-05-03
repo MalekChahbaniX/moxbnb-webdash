@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Head from 'next/head';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Save, Trash2, Upload, MapPin, Clock, DollarSign, Tag } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import LocationPicker from '@/components/moxbnb/LocationPicker';
+import { api } from '@/lib/api';
 
 const serviceCategories = [
   { value: 'photography', label: 'Photographie' },
@@ -20,7 +23,6 @@ const serviceCategories = [
   { value: 'beauty', label: 'Beauté' },
   { value: 'sport', label: 'Sport' },
   { value: 'wellness', label: 'Bien-être' },
-  { value: 'photography', label: 'Photographie' },
   { value: 'cooking', label: 'Cuisine' },
   { value: 'adventure', label: 'Aventure' },
   { value: 'workshop', label: 'Atelier' },
@@ -38,7 +40,8 @@ export default function NewServicePage() {
     location: '',
     city: '',
     country: '',
-    images: [],
+    coordinates: { lat: 36.8065, lng: 10.1815 },
+    images: [] as string[],
     requirements: '',
     included: '',
     notIncluded: '',
@@ -48,19 +51,66 @@ export default function NewServicePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: API call to create service
-    console.log('Creating service:', formData);
-    // router.push('/provider/services');
+    
+    try {
+      const response = await api.post('/services', formData);
+      
+      if (response.data.success) {
+        console.log('Service created successfully:', response.data.data);
+        router.push('/provider/services');
+      } else {
+        console.error('Error creating service:', response.data.error);
+        // You could show an error message to the user here
+      }
+    } catch (error: any) {
+      console.error('Error creating service:', error);
+      // You could show an error message to the user here
+    }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    // TODO: Handle image upload
-    console.log('Uploading images:', files);
+    
+    if (files.length === 0) return;
+    
+    try {
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append('images', file);
+      });
+      
+      const response = await api.post('/upload/multiple', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      if (response.data.success) {
+        const uploadedImages = response.data.data.map((file: any) => file.url);
+        setFormData(prev => ({
+          ...prev,
+          images: [...prev.images, ...uploadedImages] as string[]
+        }));
+        console.log('Images uploaded successfully:', uploadedImages);
+      } else {
+        console.error('Error uploading images:', response.data.error);
+      }
+    } catch (error: any) {
+      console.error('Error uploading images:', error);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <>
+      <Head>
+        <link
+          rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMYD+OMUp+VR0cq/IQ=="
+          crossOrigin="anonymous"
+        />
+      </Head>
+      <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center mb-4">
@@ -183,43 +233,28 @@ export default function NewServicePage() {
           <CardHeader>
             <CardTitle>
               <MapPin className="mr-2 h-5 w-5" />
-              Localisation
+              Localisation sur la Carte
             </CardTitle>
-            <CardDescription>Où le service est disponible</CardDescription>
+            <CardDescription>Sélectionnez la localisation exacte de votre service</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="location">Lieu spécifique</Label>
-                <Input
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) => setFormData({...formData, location: e.target.value})}
-                  placeholder="Studio Photo, Centre Ville"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="city">Ville</Label>
-                <Input
-                  id="city"
-                  value={formData.city}
-                  onChange={(e) => setFormData({...formData, city: e.target.value})}
-                  placeholder="Tunis"
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="country">Pays</Label>
-              <Input
-                id="country"
-                value={formData.country}
-                onChange={(e) => setFormData({...formData, country: e.target.value})}
-                placeholder="Tunisie"
-                required
-              />
-            </div>
+          <CardContent>
+            <LocationPicker
+              onLocationSelect={(locationData) => {
+                setFormData({
+                  ...formData,
+                  location: locationData.address,
+                  city: locationData.city,
+                  country: locationData.country,
+                  coordinates: locationData.coordinates
+                });
+              }}
+              initialLocation={{
+                address: formData.location,
+                city: formData.city,
+                country: formData.country,
+                coordinates: formData.coordinates
+              }}
+            />
           </CardContent>
         </Card>
 
@@ -314,6 +349,7 @@ export default function NewServicePage() {
           </Button>
         </div>
       </form>
-    </div>
+      </div>
+    </>
   );
 }

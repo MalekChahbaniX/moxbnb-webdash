@@ -79,7 +79,7 @@ export default function ProviderDashboard() {
             Ajouter un Service
           </Button>
         </Link>
-        <Link href="/provider/services/new">
+        <Link href="/provider/experiences/new">
           <Button className="bg-blue-600 hover:bg-blue-700">
             <Plus className="mr-2 h-4 w-4" />
             Ajouter une Expérience
@@ -109,7 +109,7 @@ export default function ProviderDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{analytics.totalServices || 0}</div>
             <p className="text-xs text-muted-foreground">
-              {analytics.totalServices - (analytics.totalServices - analytics.activeServices || 0) || 0} actifs
+              {analytics.activeServices || 0} actifs
             </p>
           </CardContent>
         </Card>

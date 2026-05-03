@@ -6,7 +6,7 @@ import { addDays, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { 
   MapPin, 
-  Star, 
+  Calendar, 
   Users, 
   Home, 
   Bath, 
@@ -19,23 +19,26 @@ import {
   Image as ImageIcon,
   Wifi,
   Car,
-  Utensils,
   Snowflake,
-  Waves
+  Waves,
+  Utensils,
+  Star
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import ContactHostModal from '@/components/moxbnb/ContactHostModal';
+import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
 
 export default function PropertyDetail() {
   const params = useParams();
   const router = useRouter();
   const { t } = useLanguage();
+  const { user, isAuthenticated } = useAuth();
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [checkIn, setCheckIn] = useState<Date | undefined>(new Date());
@@ -46,13 +49,16 @@ export default function PropertyDetail() {
   const [property, setProperty] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchProperty = async () => {
       try {
         setLoading(true);
         const response = await api.get(`/listings/${params.id}`);
-        setProperty(response.data?.data || response.data);
+        const propertyData = response.data?.data?.listing || response.data?.data || response.data;
+        console.log('Property data:', propertyData);
+        setProperty(propertyData);
       } catch (err) {
         console.error('Error fetching property:', err);
         setError('Failed to load property');
@@ -105,12 +111,12 @@ export default function PropertyDetail() {
       return;
     }
     // Navigate to booking confirmation page
-    router.push(`/bookings/confirm?propertyId=${property._id}&checkIn=${checkIn.toISOString()}&checkOut=${checkOut.toISOString()}&guests=${guests}`);
+    router.push(`/bookings/confirm?propertyId=${params.id}&checkIn=${checkIn.toISOString()}&checkOut=${checkOut.toISOString()}&guests=${guests}`);
   };
 
   const handleContactHost = () => {
-    // Open contact modal
-    console.log('Contacting host:', property.host?.name);
+    // Open internal contact modal
+    setIsContactModalOpen(true);
   };
 
   return (
@@ -126,7 +132,7 @@ export default function PropertyDetail() {
             <ChevronLeft className="h-4 w-4 mr-2" />
             Retour
           </Button>
-          <h1 className="text-2xl md:text-3xl font-bold">{property.title}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">{property.title || 'Logement'}</h1>
         </div>
       </header>
 
@@ -257,12 +263,12 @@ export default function PropertyDetail() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <span className="text-2xl font-bold text-rose-600">{property.price} DT</span>
+                    <span className="text-2xl font-bold text-rose-600">{property.price || 0} DT</span>
                     <span className="text-muted-foreground text-sm">/ nuit</span>
                   </div>
                   <div className="flex items-center">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                    <span className="font-medium">{property.rating}</span>
+                    <span className="font-medium">{property.rating || 'N/A'}</span>
                   </div>
                 </div>
 
@@ -368,22 +374,22 @@ export default function PropertyDetail() {
                       <Users className="h-6 w-6 text-rose-600" />
                     </div>
                     <div>
-                      <p className="font-medium">{property.host?.name || 'Hôte'}</p>
-                      <p className="text-sm text-muted-foreground">Membre depuis {property.host?.memberSince || 'N/A'}</p>
+                      <p className="font-medium">{property.hostId?.firstName && property.hostId?.lastName ? `${property.hostId.firstName} ${property.hostId.lastName}` : 'Hôte'}</p>
+                      <p className="text-sm text-muted-foreground">Membre depuis {new Date(property.hostId?.createdAt || Date.now()).getFullYear()}</p>
                     </div>
                   </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Taux de réponse</span>
-                      <span className="font-medium">{property.host?.responseRate || 'N/A'}%</span>
+                      <span className="font-medium">95%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Temps de réponse</span>
-                      <span className="font-medium">{property.host?.responseTime || 'N/A'}</span>
+                      <span className="font-medium">Quelques heures</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Avis reçus</span>
-                      <span className="font-medium">{property.host?.reviews || 'N/A'}</span>
+                      <span className="font-medium">{property.reviews?.length || 0}</span>
                     </div>
                   </div>
                   <Button 
@@ -399,6 +405,16 @@ export default function PropertyDetail() {
           </div>
         </div>
       </main>
+
+      {/* Contact Host Modal */}
+      <ContactHostModal
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+        hostId={property?.hostId?._id}
+        hostName={`${property?.hostId?.firstName || ''} ${property?.hostId?.lastName || ''}`.trim() || 'Hôte'}
+        propertyTitle={property?.title}
+        userId={user?.id}
+      />
     </div>
   );
 }

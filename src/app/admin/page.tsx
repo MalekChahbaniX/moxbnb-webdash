@@ -5,8 +5,12 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import AdminOverview from '@/components/admin/AdminOverview';
 import AdminReservations from '@/components/admin/AdminReservations';
 import AdminListings from '@/components/admin/AdminListings';
+import AdminExperiences from '@/components/admin/AdminExperiences';
 import AdminServices from '@/components/admin/AdminServices';
 import AdminUsers from '@/components/admin/AdminUsers';
+import AdminReviews from '@/components/admin/AdminReviews';
+import AdminStatistics from '@/components/admin/AdminStatistics';
+import AdminSettings from '@/components/admin/AdminSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function AdminDashboard() {
@@ -21,61 +25,17 @@ export default function AdminDashboard() {
       case 'listings':
         return <AdminListings />;
       case 'experiences':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Validation des Expériences</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Module de validation des expériences (similaire aux annonces)
-              </p>
-            </CardContent>
-          </Card>
-        );
+        return <AdminExperiences />;
       case 'services':
         return <AdminServices />;
       case 'users':
         return <AdminUsers />;
       case 'reviews':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Modération des Avis</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Module de modération des avis (en cours de développement)
-              </p>
-            </CardContent>
-          </Card>
-        );
+        return <AdminReviews />;
       case 'statistics':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Statistiques Détaillées</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Tableau de bord statistiques avancées (en cours de développement)
-              </p>
-            </CardContent>
-          </Card>
-        );
+        return <AdminStatistics />;
       case 'settings':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Paramètres Administrateur</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Configuration de la plateforme (en cours de développement)
-              </p>
-            </CardContent>
-          </Card>
-        );
+        return <AdminSettings />;
       default:
         return <AdminOverview />;
     }

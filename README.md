@@ -1,141 +1,241 @@
-# 🚀 Welcome to Z.ai Code Scaffold
+# 🏠 Moxbnb - Website & Dashboard
 
-A modern, production-ready web application scaffold powered by cutting-edge technologies, designed to accelerate your development with [Z.ai](https://chat.z.ai)'s AI-powered coding assistance.
+Bienvenue dans le frontend de Moxbnb ! Notre plateforme de location, expériences et services en Tunisie avec une interface moderne et intuitive.
 
-## ✨ Technology Stack
+> **Note pour l'équipe** : Ce frontend est composé de deux parties principales : le site public pour les utilisateurs et le dashboard d'administration. Il communique avec notre backend API pour toutes les opérations.
 
-This scaffold provides a robust foundation built with:
+## 🛠️ Stack Technique
 
-### 🎯 Core Framework
-- **⚡ Next.js 15** - The React framework for production with App Router
-- **📘 TypeScript 5** - Type-safe JavaScript for better developer experience
-- **🎨 Tailwind CSS 4** - Utility-first CSS framework for rapid UI development
+Notre frontend utilise les meilleures technologies modernes :
 
-### 🧩 UI Components & Styling
-- **🧩 shadcn/ui** - High-quality, accessible components built on Radix UI
-- **🎯 Lucide React** - Beautiful & consistent icon library
-- **🌈 Framer Motion** - Production-ready motion library for React
-- **🎨 Next Themes** - Perfect dark mode in 2 lines of code
+### 🎯 Framework & Base
+- **⚡ Next.js 15** : Framework React avec App Router pour performances optimales
+- **📘 TypeScript 5** : Code typé et sécurisé pour éviter les erreurs
+- **🎨 Tailwind CSS 4** : Design rapide et responsive
 
-### 📋 Forms & Validation
-- **🎣 React Hook Form** - Performant forms with easy validation
-- **✅ Zod** - TypeScript-first schema validation
+### 🧩 Composants & UI
+- **🧩 shadcn/ui** : Composants de haute qualité basés sur Radix UI
+- **🎯 Lucide React** : Icônes modernes et cohérentes
+- **🌈 Framer Motion** : Animations fluides et micro-interactions
+- **🎨 Next Themes** : Mode sombre/clair en 2 lignes de code
 
-### 🔄 State Management & Data Fetching
-- **🐻 Zustand** - Simple, scalable state management
-- **🔄 TanStack Query** - Powerful data synchronization for React
-- **🌐 Fetch** - Promise-based HTTP request
+### 📋 Formulaires & Validation
+- **🎣 React Hook Form** : Formulaires performants avec validation facile
+- **✅ Zod** : Validation de schémas type-safe
 
-### 🗄️ Database & Backend
-- **🗄️ Prisma** - Next-generation TypeScript ORM
-- **🔐 NextAuth.js** - Complete open-source authentication solution
+### 🔄 State Management & API
+- **🐻 Zustand** : State management simple et scalable
+- **🔄 TanStack Query** : Synchronisation des données avec notre backend
+- **🌐 Fetch** : Requêtes HTTP optimisées
 
-### 🎨 Advanced UI Features
-- **📊 TanStack Table** - Headless UI for building tables and datagrids
-- **🖱️ DND Kit** - Modern drag and drop toolkit for React
-- **📊 Recharts** - Redefined chart library built with React and D3
-- **🖼️ Sharp** - High performance image processing
+### 🎨 Fonctionnalités Avancées
+- **📊 TanStack Table** : Tableaux et datagrids puissants
+- **🖱️ DND Kit** : Drag & drop moderne
+- **📊 Recharts** : Graphiques et visualisations
+- **🖼️ Sharp** : Optimisation des images
 
-### 🌍 Internationalization & Utilities
-- **🌍 Next Intl** - Internationalization library for Next.js
-- **📅 Date-fns** - Modern JavaScript date utility library
-- **🪝 ReactUse** - Collection of essential React hooks for modern development
+### 🌍 Internationalisation & Utils
+- **🌍 Next Intl** : Support multilingue (Français/Arabe/Anglais)
+- **📅 Date-fns** : Manipulation de dates
+- **🪝 ReactUse** : Hooks essentiels pour le développement
 
-## 🎯 Why This Scaffold?
+## 🎯 Ce que notre frontend offre
 
-- **🏎️ Fast Development** - Pre-configured tooling and best practices
-- **🎨 Beautiful UI** - Complete shadcn/ui component library with advanced interactions
-- **🔒 Type Safety** - Full TypeScript configuration with Zod validation
-- **📱 Responsive** - Mobile-first design principles with smooth animations
-- **🗄️ Database Ready** - Prisma ORM configured for rapid backend development
-- **🔐 Auth Included** - NextAuth.js for secure authentication flows
-- **📊 Data Visualization** - Charts, tables, and drag-and-drop functionality
-- **🌍 i18n Ready** - Multi-language support with Next Intl
-- **🚀 Production Ready** - Optimized build and deployment settings
-- **🤖 AI-Friendly** - Structured codebase perfect for AI assistance
+- **🏎️ Développement Rapide** : Outils pré-configurés et meilleures pratiques
+- **🎨 UI Magnifique** : Bibliothèque complète shadcn/ui avec interactions avancées
+- **🔒 Type Safety** : Configuration TypeScript complète avec validation Zod
+- **📱 Responsive** : Design mobile-first avec animations fluides
+- **🔐 Authentification** : Connexion sécurisée avec notre backend API
+- **📊 Visualisation** : Graphiques, tableaux, et fonctionnalités drag & drop
+- **🌍 Multilingue** : Support Français/Arabe/Anglais avec Next Intl
+- **🚀 Production Ready** : Build optimisé et configuration déploiement
+- **🤖 AI-Friendly** : Code structuré parfait pour l'assistance IA
 
-## 🚀 Quick Start
+## 🏠 Architecture Moxbnb
 
+Notre frontend est divisé en deux parties :
+
+### Site Public 🌐
+- **Homepage** : Présentation de la plateforme
+- **Recherche** : Filtrage avancé des logements
+- **Détails** : Pages complètes des annonces
+- **Profil Utilisateur** : Gestion compte et réservations
+- **Paiement** : Intégration solutions tunisiennes
+
+### Dashboard Admin 📊
+- **Gestion Annonces** : CRUD complet pour les logements
+- **Utilisateurs** : Gestion des comptes et permissions
+- **Réservations** : Suivi et validation des bookings
+- **Analytics** : Statistiques et rapports
+- **Paiements** : Suivi des transactions
+- **Settings** : Configuration plateforme
+
+## 🚀 Démarrage Rapide (Pour l'équipe)
+
+### Prérequis
+- Node.js 18+
+- npm ou yarn (utilisez ce que vous préférez)
+
+### Installation
+
+1. **Cloner et installer**
 ```bash
-# Install dependencies
-bun install
-
-# Start development server
-bun run dev
-
-# Build for production
-bun run build
-
-# Start production server
-bun start
+git clone <repository-url>
+cd Moxbnb
+npm install
+# ou yarn install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see your application running.
+2. **Configuration**
+```bash
+cp .env.example .env.local
+# Configurez vos variables d'environnement
+```
 
-## 🤖 Powered by Z.ai
+3. **Lancer le serveur**
+```bash
+# Développement
+npm run dev
+# ou yarn dev
 
-This scaffold is optimized for use with [Z.ai](https://chat.z.ai) - your AI assistant for:
+# Build production
+npm run build
+# ou yarn build
 
-- **💻 Code Generation** - Generate components, pages, and features instantly
-- **🎨 UI Development** - Create beautiful interfaces with AI assistance  
-- **🔧 Bug Fixing** - Identify and resolve issues with intelligent suggestions
-- **📝 Documentation** - Auto-generate comprehensive documentation
-- **🚀 Optimization** - Performance improvements and best practices
+# Start production
+npm start
+# ou yarn start
+```
 
-Ready to build something amazing? Start chatting with Z.ai at [chat.z.ai](https://chat.z.ai) and experience the future of AI-powered development!
+### URLs
+- **Développement** : http://localhost:3000
+- **Site Public** : http://localhost:3000
+- **Dashboard Admin** : http://localhost:3000/admin
 
-## 📁 Project Structure
+> **Conseil équipe** : Le serveur de développement redémarre automatiquement avec hot-reload. Utilisez toujours `npm run dev` pour le développement !
+
+### Configuration Backend
+Assurez-vous que le backend Moxbnb est démarré sur `http://localhost:3001` (ou configurez l'URL dans `.env.local`)
+
+## 📁 Structure du Projet
 
 ```
 src/
-├── app/                 # Next.js App Router pages
-├── components/          # Reusable React components
-│   └── ui/             # shadcn/ui components
-├── hooks/              # Custom React hooks
-└── lib/                # Utility functions and configurations
+├── app/                    # Next.js App Router pages
+│   ├── (public)/          # Pages publiques (homepage, recherche, etc.)
+│   ├── (auth)/            # Pages d'authentification
+│   ├── admin/             # Dashboard admin
+│   └── api/               # API routes (si besoin)
+├── components/            # Composants React réutilisables
+│   ├── ui/               # shadcn/ui components
+│   ├── forms/            # Formulaires personnalisés
+│   ├── layout/           # Composants de layout
+│   └── features/         # Composants par feature
+├── hooks/                # Hooks React personnalisés
+├── lib/                  # Utilitaires et configurations
+│   ├── api/             # Client API pour notre backend
+│   ├── utils/           # Fonctions utilitaires
+│   └── validations/     # Schémas Zod
+├── store/                # Store Zustand
+├── types/                # Types TypeScript
+└── styles/               # Styles globaux
 ```
 
-## 🎨 Available Features & Components
+> **Pour l'équipe** : Suivez cette structure pour maintenir le code organisé !
+> - Pages dans `app/`
+> - Composants réutilisables dans `components/`
+> - Logique API dans `lib/api/`
 
-This scaffold includes a comprehensive set of modern web development tools:
+## 🎨 Fonctionnalités Disponibles
 
-### 🧩 UI Components (shadcn/ui)
-- **Layout**: Card, Separator, Aspect Ratio, Resizable Panels
-- **Forms**: Input, Textarea, Select, Checkbox, Radio Group, Switch
-- **Feedback**: Alert, Toast (Sonner), Progress, Skeleton
-- **Navigation**: Breadcrumb, Menubar, Navigation Menu, Pagination
-- **Overlay**: Dialog, Sheet, Popover, Tooltip, Hover Card
-- **Data Display**: Badge, Avatar, Calendar
+### 🧩 Composants UI (shadcn/ui)
+- **Layout** : Card, Separator, Aspect Ratio, Panels
+- **Forms** : Input, Textarea, Select, Checkbox, Radio, Switch
+- **Feedback** : Alert, Toast (Sonner), Progress, Skeleton
+- **Navigation** : Breadcrumb, Menubar, Navigation Menu, Pagination
+- **Overlay** : Dialog, Sheet, Popover, Tooltip, Hover Card
+- **Data Display** : Badge, Avatar, Calendar
 
-### 📊 Advanced Data Features
-- **Tables**: Powerful data tables with sorting, filtering, pagination (TanStack Table)
-- **Charts**: Beautiful visualizations with Recharts
-- **Forms**: Type-safe forms with React Hook Form + Zod validation
+### 📊 Fonctionnalités Avancées
+- **Tableaux** : Datatables puissantes avec tri, filtrage, pagination
+- **Graphiques** : Visualisations avec Recharts pour les analytics
+- **Formulaires** : Type-safe avec React Hook Form + Zod
+- **Animations** : Micro-interactions fluides avec Framer Motion
+- **Drag & Drop** : Fonctionnalité moderne avec DND Kit
+- **Thèmes** : Mode sombre/clair intégré
 
-### 🎨 Interactive Features
-- **Animations**: Smooth micro-interactions with Framer Motion
-- **Drag & Drop**: Modern drag-and-drop functionality with DND Kit
-- **Theme Switching**: Built-in dark/light mode support
+### 🔐 Intégration Backend
+- **Authentification** : Connexion sécurisée avec notre API Moxbnb
+- **API Client** : Requêtes HTTP avec TanStack Query
+- **State Management** : Simple et scalable avec Zustand
+- **Validation** : Validation stricte avec Zod
 
-### 🔐 Backend Integration
-- **Authentication**: Ready-to-use auth flows with NextAuth.js
-- **Database**: Type-safe database operations with Prisma
-- **API Client**: HTTP requests with Fetch + TanStack Query
-- **State Management**: Simple and scalable with Zustand
+### 🌍 Fonctionnalités Production
+- **Multilingue** : Support Français/Arabe/Anglais avec Next Intl
+- **Images** : Optimisation automatique avec Sharp
+- **Type Safety** : TypeScript complet avec Zod
+- **Hooks** : 100+ hooks utiles avec ReactUse
 
-### 🌍 Production Features
-- **Internationalization**: Multi-language support with Next Intl
-- **Image Optimization**: Automatic image processing with Sharp
-- **Type Safety**: End-to-end TypeScript with Zod validation
-- **Essential Hooks**: 100+ useful React hooks with ReactUse for common patterns
+## 👥 Comment contribuer (Guide pour l'équipe)
 
-## 🤝 Get Started with Z.ai
+### Notre workflow
+1. **Fork** le projet sur votre GitHub
+2. **Créer une branche** : `git checkout -b feature/nouvelle-feature`
+3. **Développer** en suivant la structure du projet
+4. **Tester** : `npm run lint` et vérifier le build
+5. **Commit** : `git commit -m "feat: ajoute nouvelle feature"`
+6. **Push** : `git push origin feature/nouvelle-feature`
+7. **Pull Request** : Sur la branche principale
 
-1. **Clone this scaffold** to jumpstart your project
-2. **Visit [chat.z.ai](https://chat.z.ai)** to access your AI coding assistant
-3. **Start building** with intelligent code generation and assistance
-4. **Deploy with confidence** using the production-ready setup
+### Bonnes pratiques
+- **Structure** : Respectez l'architecture app/components/lib
+- **Composants** : Créez des composants réutilisables dans `components/`
+- **Types** : Utilisez TypeScript pour tout
+- **Styles** : Préférez Tailwind CSS aux styles inline
+- **API** : Utilisez TanStack Query pour les appels backend
+- **Tests** : Ajoutez des tests pour les nouvelles features
+
+### Support équipe
+- **Slack** : #frontend-moxbnb pour les questions techniques
+- **Code Review** : Toute PR doit être reviewée par au moins 1 autre dev
+- **Design** : Consultez Figma avant d'implémenter de nouvelles UI
+
+## 🚀 Déploiement
+
+### Variables d'environnement (.env.local)
+```env
+# Backend API
+NEXT_PUBLIC_API_URL=http://localhost:3001
+
+# Authentification (si NextAuth.js utilisé)
+NEXTAUTH_SECRET=votre_secret
+NEXTAUTH_URL=http://localhost:3000
+
+# Autres configurations
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### Build & Deploy
+```bash
+# Build pour production
+npm run build
+
+# Lancer en production
+npm start
+
+# Vérifier le build
+npm run build:analyze  # Analyse du bundle
+```
+
+## 🌍 Internationalisation
+
+Notre frontend supporte 3 langues :
+- **Français** (défaut)
+- **Arabe** 
+- **Anglais**
+
+Les traductions sont dans `src/messages/`. Ajoutez vos nouvelles clés de traduction dans les fichiers correspondants.
 
 ---
 
-Built with ❤️ for the developer community. Supercharged by [Z.ai](https://chat.z.ai) 🚀
+**Made with ❤️ by the Moxbnb Team**

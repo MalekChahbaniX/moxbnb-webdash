@@ -137,7 +137,7 @@ export default function Header() {
                       Mon Profil
                     </DropdownMenuItem>
                   </Link>
-                  {user.role === 'traveler' && (
+                  {user.role === 'CLIENT' && (
                     <Link href="/bookings" className="block w-full">
                       <DropdownMenuItem>
                         Mes Réservations

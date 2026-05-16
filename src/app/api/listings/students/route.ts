@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '12');
 
     const filter: any = {
-      isActive: true,
+      status: 'PUBLISHED',
       targetAudience: 'STUDENTS'
     };
 
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
 
     const [listings, total] = await Promise.all([
       Listing.find(filter)
-        .populate('host', 'id name avatar')
+        .populate('hostId', 'id name avatar')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),

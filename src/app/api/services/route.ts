@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     const filter: any = {};
 
     if (type) {
-      filter.type = type;
+      filter.$or = [{ type }, { category: type }];
     }
 
     if (city) {
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     }
 
     const services = await Service.find(filter)
-      .populate('provider', 'id name email phone avatar')
+      .populate('providerId', 'id name email phone avatar')
       .sort({ createdAt: -1 });
 
     return NextResponse.json(services);

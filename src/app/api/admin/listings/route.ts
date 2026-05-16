@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     }
 
     const listings = await Listing.find(filter)
-      .populate('host', 'id name email phone')
+      .populate('hostId', 'id name email phone')
       .sort({ createdAt: -1 });
 
     return NextResponse.json(listings);
@@ -46,7 +46,7 @@ export async function PATCH(request: Request) {
       listingId,
       updateData,
       { new: true }
-    ).populate('host', 'id name email');
+    ).populate('hostId', 'id name email');
 
     return NextResponse.json(listing);
   } catch (error) {

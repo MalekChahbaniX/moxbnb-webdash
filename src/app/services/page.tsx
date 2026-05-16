@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import Header from '@/components/moxbnb/Header';
 import Footer from '@/components/moxbnb/Footer';
@@ -15,126 +15,115 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+interface ServiceItem {
+  id: string;
+  title: string;
+  provider: string;
+  type: string;
+  location: string;
+  duration: string;
+  price: number;
+  rating: number;
+  reviews: number;
+  available: boolean;
+  image: string;
+}
+
+const serviceTypeOptions = [
+  { value: 'all', label: 'Tous les types' },
+  { value: 'privateChef', label: 'Chef privé' },
+  { value: 'massage', label: 'Massages' },
+  { value: 'sportsCoach', label: 'Coach sportif' },
+  { value: 'photography', label: 'Photographie' },
+  { value: 'hairdressing', label: 'Coiffure' },
+  { value: 'catering', label: 'Traiteur' }
+];
+
+const cityOptions = [
+  { value: 'all', label: 'Toutes les villes' },
+  { value: 'Tunis', label: 'Tunis' },
+  { value: 'Hammamet', label: 'Hammamet' },
+  { value: 'Sousse', label: 'Sousse' },
+  { value: 'Sfax', label: 'Sfax' },
+  { value: 'Djerba', label: 'Djerba' }
+];
+
 export default function ServicesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedCity, setSelectedCity] = useState('all');
   const [selectedAvailability, setSelectedAvailability] = useState('all');
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const allServices = [
-    {
-      id: '1',
-      title: 'Cuisine Traditionnelle à Domicile',
-      provider: 'Chef Fatma Mansouri',
-      type: 'Chef privé',
-      location: 'Tunis',
-      city: 'Tunis',
-      price: 500,
-      duration: '4 heures',
-      rating: 4.9,
-      reviews: 78,
-      available: true,
-      image: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&h=600&fit=crop'
-    },
-    {
-      id: '2',
-      title: 'Soin Massage Relaxant',
-      provider: 'Spa Zen Hammamet',
-      type: 'Massages',
-      location: 'Hammamet',
-      city: 'Nabeul',
-      price: 200,
-      duration: '1 heure',
-      rating: 4.8,
-      reviews: 156,
-      available: true,
-      image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&h=600&fit=crop'
-    },
-    {
-      id: '3',
-      title: 'Coaching Sportif Personnalisé',
-      provider: 'Karim Ben Hassen',
-      type: 'Coach sportif',
-      location: 'Sousse',
-      city: 'Sousse',
-      price: 150,
-      duration: '1 heure',
-      rating: 4.95,
-      reviews: 203,
-      available: true,
-      image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=600&fit=crop'
-    },
-    {
-      id: '4',
-      title: 'Séance Photo Voyage',
-      provider: 'Studio Photo Tunis',
-      type: 'Photographie',
-      location: 'Tunis',
-      city: 'Tunis',
-      price: 350,
-      duration: '2 heures',
-      rating: 4.92,
-      reviews: 89,
-      available: true,
-      image: 'https://images.unsplash.com/photo-1554048612-b6a484d98b7?w=800&h=600&fit=crop'
-    },
-    {
-      id: '5',
-      title: 'Service de Traiteur pour Événements',
-      provider: 'Catering El Gusto',
-      type: 'Traiteur',
-      location: 'Sfax',
-      city: 'Sfax',
-      price: 1500,
-      duration: 'Sur demande',
-      rating: 4.85,
-      reviews: 67,
-      available: false,
-      image: 'https://images.unsplash.com/photo-1555244162-803834f70033?w=800&h=600&fit=crop'
-    },
-    {
-      id: '6',
-      title: 'Coiffure et Maquillage Mariage',
-      provider: 'Salon de Beauté Lilla',
-      type: 'Coiffure',
-      location: 'Djerba',
-      city: 'Medenine',
-      price: 600,
-      duration: '3 heures',
-      rating: 4.88,
-      reviews: 134,
-      available: true,
-      image: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=800&h=600&fit=crop'
-    },
-    {
-      id: '7',
-      title: 'Coach Personal Trainer',
-      provider: 'Karim Ben Hassen',
-      type: 'Coach sportif',
-      location: 'Sousse',
-      city: 'Sousse',
-      price: 200,
-      duration: '1.5 heure',
-      rating: 4.87,
-      reviews: 178,
-      available: true,
-      image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=600&fit=crop'
-    },
-    {
-      id: '8',
-      title: 'Photographie de Mariage',
-      provider: 'Studio Photo Tunis',
-      type: 'Photographie',
-      location: 'Tunis',
-      city: 'Tunis',
-      price: 800,
-      duration: '4 heures',
-      rating: 4.9,
-      reviews: 245,
-      available: true,
-      image: 'https://images.unsplash.com/photo-1554048612-b6a484d98b7?w=800&h=600&fit=crop'
+  useEffect(() => {
+    async function fetchServices() {
+      setLoading(true);
+      setError('');
+
+      try {
+        const params = new URLSearchParams();
+
+        if (selectedType !== 'all') {
+          params.append('type', selectedType);
+        }
+
+        if (selectedCity !== 'all') {
+          params.append('city', selectedCity);
+        }
+
+        if (selectedAvailability === 'available') {
+          params.append('available', 'true');
+        } else if (selectedAvailability === 'unavailable') {
+          params.append('available', 'false');
+        }
+
+        const response = await fetch(`/api/services?${params.toString()}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Erreur lors du chargement des services');
+        }
+
+        setServices(
+          data.map((service: any) => ({
+            id: service._id,
+            title: service.title,
+            provider: service.providerId?.name || 'Prestataire',
+            type:
+              serviceTypeOptions.find(
+                (option) => option.value === service.type || option.value === service.category
+              )?.label || service.type || service.category || 'Service',
+            location: service.location || service.address || service.city || 'Lieu non spécifié',
+            duration: service.duration || 'Durée non précisée',
+            price: service.price,
+            rating: service.rating ?? 0,
+            reviews: service.reviewsCount ?? 0,
+            available: service.isAvailable,
+            image:
+              service.images?.[0] ||
+              'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=600&fit=crop'
+          }))
+        );
+      } catch (fetchError: any) {
+        setError(fetchError.message || 'Impossible de charger les services');
+      } finally {
+        setLoading(false);
+      }
     }
-  ];
+
+    fetchServices();
+  }, [selectedType, selectedCity, selectedAvailability]);
+
+  const filteredServices = services.filter((service) => {
+    if (!searchTerm) return true;
+    return (
+      service.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      service.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      service.location.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -164,13 +153,11 @@ export default function ServicesPage() {
                   <SelectValue placeholder="Type de service" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous les types</SelectItem>
-                  <SelectItem value="privateChef">Chef privé</SelectItem>
-                  <SelectItem value="massage">Massages</SelectItem>
-                  <SelectItem value="sportsCoach">Coach sportif</SelectItem>
-                  <SelectItem value="photography">Photographie</SelectItem>
-                  <SelectItem value="hairdressing">Coiffure</SelectItem>
-                  <SelectItem value="catering">Traiteur</SelectItem>
+                  {serviceTypeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -179,12 +166,11 @@ export default function ServicesPage() {
                   <SelectValue placeholder="Ville" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Toutes les villes</SelectItem>
-                  <SelectItem value="tunis">Tunis</SelectItem>
-                  <SelectItem value="hammamet">Hammamet</SelectItem>
-                  <SelectItem value="sousse">Sousse</SelectItem>
-                  <SelectItem value="sfax">Sfax</SelectItem>
-                  <SelectItem value="djerba">Djerba</SelectItem>
+                  {cityOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -215,17 +201,31 @@ export default function ServicesPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {allServices.map((service) => (
-            <ServiceCard key={service.id} {...service} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="text-center py-20 text-muted-foreground">
+            Chargement des services...
+          </div>
+        ) : error ? (
+          <div className="text-center py-20 text-destructive">{error}</div>
+        ) : filteredServices.length === 0 ? (
+          <div className="text-center py-20 text-muted-foreground">
+            Aucun service trouvé.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredServices.map((service) => (
+              <ServiceCard key={service.id} {...service} />
+            ))}
+          </div>
+        )}
 
-        <div className="text-center mt-12">
-          <Button variant="outline" size="lg">
-            Charger plus de services
-          </Button>
-        </div>
+        {filteredServices.length > 0 && (
+          <div className="text-center mt-12">
+            <Button variant="outline" size="lg">
+              Charger plus de services
+            </Button>
+          </div>
+        )}
       </main>
       <Footer />
     </div>

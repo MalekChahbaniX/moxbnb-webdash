@@ -21,7 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { api } from '@/lib/api';
+import { getAllReservations, getPendingReservations, updateReservationStatus } from '@/services/adminService';
 
 export default function AdminReservations() {
   const [selectedFilter, setSelectedFilter] = useState('all');
@@ -42,21 +42,27 @@ export default function AdminReservations() {
     const fetchReservations = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/bookings');
-        const reservationsData = response.data?.data || response.data;
-        setReservations(reservationsData);
-        
-        // Calculate statistics from reservations data
-        const stats = {
-          pending: reservationsData.filter((r: any) => r.status === 'pending').length,
-          confirmed: reservationsData.filter((r: any) => r.status === 'confirmed').length,
-          cancelled: reservationsData.filter((r: any) => ['cancelled', 'rejected'].includes(r.status)).length,
-          totalRevenue: reservationsData
-            .filter((r: any) => r.status === 'confirmed')
-            .reduce((sum: number, r: any) => sum + (parseFloat(r.totalPrice) || 0), 0)
-        };
-        setStatistics(stats);
-      } catch (err) {
+        const response = selectedFilter === 'pending'
+          ? await getPendingReservations()
+          : await getAllReservations({ status: selectedFilter === 'all' ? undefined : selectedFilter });
+
+        if (response.success) {
+          const reservationsData = response.data || [];
+          setReservations(reservationsData);
+
+          const stats = {
+            pending: reservationsData.filter((r: any) => r.status === 'PENDING').length,
+            confirmed: reservationsData.filter((r: any) => r.status === 'CONFIRMED').length,
+            cancelled: reservationsData.filter((r: any) => r.status === 'CANCELLED').length,
+            totalRevenue: reservationsData
+              .filter((r: any) => r.status === 'CONFIRMED')
+              .reduce((sum: number, r: any) => sum + (parseFloat(r.totalPrice) || 0), 0)
+          };
+          setStatistics(stats);
+        } else {
+          throw new Error(response.error || 'Failed to load reservations');
+        }
+      } catch (err: any) {
         console.error('Error fetching reservations:', err);
         setError('Failed to load reservations');
       } finally {
@@ -65,13 +71,16 @@ export default function AdminReservations() {
     };
 
     fetchReservations();
-  }, []);
+  }, [selectedFilter]);
 
   const filteredReservations = reservations.filter(reservation => {
-    const matchesFilter = selectedFilter === 'all' || reservation.status === selectedFilter;
-    const matchesSearch = reservation.user?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         reservation.itemTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         reservation.id?.toLowerCase().includes(searchTerm.toLowerCase());
+    const status = reservation.status?.toLowerCase();
+    const matchesFilter = selectedFilter === 'all' || status === selectedFilter;
+    const search = searchTerm.toLowerCase();
+    const matchesSearch = reservation.user?.toLowerCase().includes(search) ||
+                         reservation.userEmail?.toLowerCase().includes(search) ||
+                         reservation.itemTitle?.toLowerCase().includes(search) ||
+                         reservation.id?.toLowerCase().includes(search);
     return matchesFilter && matchesSearch;
   });
 
@@ -82,8 +91,10 @@ export default function AdminReservations() {
 
   const handleApprove = async (id: string) => {
     try {
-      await api.patch(`/admin/reservations/${id}`, { status: 'confirmed' });
-      setReservations(reservations.map(r => r.id === id ? { ...r, status: 'confirmed' } : r));
+      const response = await updateReservationStatus(id, 'CONFIRMED');
+      if (response.success) {
+        setReservations(reservations.map(r => r.id === id ? { ...r, status: 'CONFIRMED' } : r));
+      }
     } catch (err) {
       console.error('Error approving reservation:', err);
       alert('Failed to approve reservation');
@@ -92,8 +103,10 @@ export default function AdminReservations() {
 
   const handleReject = async (id: string) => {
     try {
-      await api.patch(`/admin/reservations/${id}`, { status: 'rejected' });
-      setReservations(reservations.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+      const response = await updateReservationStatus(id, 'CANCELLED');
+      if (response.success) {
+        setReservations(reservations.map(r => r.id === id ? { ...r, status: 'CANCELLED' } : r));
+      }
     } catch (err) {
       console.error('Error rejecting reservation:', err);
       alert('Failed to reject reservation');
@@ -101,28 +114,29 @@ export default function AdminReservations() {
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
+    switch (status?.toUpperCase()) {
+      case 'PENDING':
         return <Badge className="bg-yellow-100 text-yellow-800">En attente</Badge>;
-      case 'confirmed':
+      case 'CONFIRMED':
         return <Badge className="bg-green-100 text-green-800">Confirmée</Badge>;
-      case 'cancelled':
-      case 'rejected':
+      case 'CANCELLED':
         return <Badge className="bg-red-100 text-red-800">Annulée</Badge>;
-      case 'completed':
+      case 'COMPLETED':
         return <Badge className="bg-blue-100 text-blue-800">Terminée</Badge>;
+      case 'REFUNDED':
+        return <Badge className="bg-indigo-100 text-indigo-800">Remboursée</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
   };
 
   const getTypeBadge = (type: string) => {
-    switch (type) {
-      case 'property':
+    switch (type?.toUpperCase()) {
+      case 'PROPERTY':
         return <Badge variant="outline">Logement</Badge>;
-      case 'experience':
+      case 'EXPERIENCE':
         return <Badge variant="outline">Expérience</Badge>;
-      case 'service':
+      case 'SERVICE':
         return <Badge variant="outline">Service</Badge>;
       default:
         return <Badge>{type}</Badge>;
@@ -303,7 +317,7 @@ export default function AdminReservations() {
                       <Eye className="h-4 w-4 mr-2" />
                       Détails
                     </Button>
-                    {reservation.status === 'pending' && (
+                    {reservation.status === 'PENDING' && (
                       <>
                         <Button
                           size="sm"

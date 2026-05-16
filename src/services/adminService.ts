@@ -367,6 +367,44 @@ export async function getAdminDashboard() {
   }
 }
 
+export async function getAllReservations(filters?: {
+  status?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}) {
+  try {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append('status', filters.status.toUpperCase());
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.page) params.append('page', String(filters.page));
+    if (filters?.limit) params.append('limit', String(filters.limit));
+
+    const response = await api.get(`/admin/reservations?${params.toString()}`);
+    return response.data;
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getPendingReservations(page = 1, limit = 10) {
+  try {
+    const response = await api.get(`/admin/reservations/pending?page=${page}&limit=${limit}`);
+    return response.data;
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateReservationStatus(id: string, status: string) {
+  try {
+    const response = await api.patch(`/admin/reservations/${id}`, { status: status.toUpperCase() });
+    return response.data;
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 // ==================== UTILITIES ====================
 
 export function getStatusBadgeClass(status: string): string {

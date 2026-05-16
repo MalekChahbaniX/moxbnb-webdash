@@ -137,11 +137,13 @@ export default function Header() {
                       Mon Profil
                     </DropdownMenuItem>
                   </Link>
-                  <Link href="/bookings" className="block w-full">
-                    <DropdownMenuItem>
-                      Mes Réservations
-                    </DropdownMenuItem>
-                  </Link>
+                  {user.role === 'traveler' && (
+                    <Link href="/bookings" className="block w-full">
+                      <DropdownMenuItem>
+                        Mes Réservations
+                      </DropdownMenuItem>
+                    </Link>
+                  )}
                   <Link href="/messages" className="block w-full">
                     <DropdownMenuItem>
                       Messages

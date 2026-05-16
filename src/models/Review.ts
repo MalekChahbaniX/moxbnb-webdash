@@ -62,4 +62,4 @@ reviewSchema.index({ createdAt: -1 });
 // Unique index to prevent duplicate reviews
 reviewSchema.index({ userId: 1, bookingId: 1 }, { unique: true });
 
-export const Review = mongoose.model<IReview>('Review', reviewSchema);
+export const Review = mongoose.models.Review || mongoose.model<IReview>('Review', reviewSchema);

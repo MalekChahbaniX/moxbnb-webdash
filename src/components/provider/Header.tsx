@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Search, User, LogOut } from 'lucide-react';
+import { Search, LogOut, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -8,7 +8,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import MessageNotification from '@/components/moxbnb/MessageNotification';
 
-export function Header() {
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
 
@@ -18,7 +22,6 @@ export function Header() {
       router.push('/login');
     } catch (error) {
       console.error('Logout failed:', error);
-      // Force logout even if API call fails
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
@@ -28,10 +31,21 @@ export function Header() {
       router.push('/login');
     }
   };
+
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16 gap-3">
+
+          {/* Hamburger — mobile only */}
+          <button
+            onClick={onMenuClick}
+            className="md:hidden p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 flex-shrink-0"
+            aria-label="Ouvrir le menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+
           {/* Search */}
           <div className="flex-1 max-w-lg">
             <div className="relative">
@@ -45,28 +59,26 @@ export function Header() {
           </div>
 
           {/* Right side */}
-          <div className="flex items-center space-x-4">
-            {/* Message Notifications */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <MessageNotification />
 
-            {/* User Menu */}
-            <div className="flex items-center space-x-3">
+            <div className="hidden sm:flex items-center gap-3">
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-gray-900 leading-tight">
                   {user?.firstName ? `${user.firstName} ${user.lastName}` : 'Provider User'}
                 </p>
                 <p className="text-xs text-gray-500">{user?.email || 'provider@moxbnb.com'}</p>
               </div>
-              <Avatar>
-                <AvatarImage src={user?.avatar || "/api/placeholder/40/40"} alt="Provider" />
-                <AvatarFallback>
-                  {user?.firstName ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : 'PU'}
-                </AvatarFallback>
-              </Avatar>
             </div>
 
-            {/* Logout */}
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
+              <AvatarImage src={user?.avatar || "/api/placeholder/40/40"} alt="Provider" />
+              <AvatarFallback>
+                {user?.firstName ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : 'PU'}
+              </AvatarFallback>
+            </Avatar>
+
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="p-2">
               <LogOut className="h-5 w-5" />
             </Button>
           </div>

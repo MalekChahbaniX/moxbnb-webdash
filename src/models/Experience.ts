@@ -111,4 +111,4 @@ experienceSchema.index({ hostId: 1 });
 experienceSchema.index({ isActive: 1 });
 experienceSchema.index({ createdAt: -1 });
 
-export const Experience = mongoose.model<IExperience>('Experience', experienceSchema);
+export const Experience = mongoose.models.Experience || mongoose.model<IExperience>('Experience', experienceSchema);

@@ -125,4 +125,4 @@ listingSchema.index({ hostId: 1 });
 listingSchema.index({ isActive: 1 });
 listingSchema.index({ createdAt: -1 });
 
-export const Listing = mongoose.model<IListing>('Listing', listingSchema);
+export const Listing = mongoose.models.Listing || mongoose.model<IListing>('Listing', listingSchema);

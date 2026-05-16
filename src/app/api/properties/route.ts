@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     }
 
     const properties = await Listing.find(filter)
-      .populate('host', 'id name avatar')
+      .populate('hostId', 'id name avatar')
       .sort({ createdAt: -1 });
 
     return NextResponse.json(properties);
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       hostId
     });
 
-    await property.populate('host', 'id name avatar');
+    await property.populate('hostId', 'id name avatar');
 
     return NextResponse.json(property, { status: 201 });
   } catch (error) {

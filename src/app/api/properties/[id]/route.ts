@@ -9,7 +9,7 @@ export async function GET(
   try {
     await connectDB();
     const property = await Listing.findById(params.id)
-      .populate('host', 'id name avatar')
+      .populate('hostId', 'id name avatar')
       .populate({
         path: 'reviews',
         populate: {
@@ -47,7 +47,7 @@ export async function PUT(
       params.id,
       body,
       { new: true }
-    ).populate('host', 'id name avatar');
+    ).populate('hostId', 'id name avatar');
 
     return NextResponse.json(property);
   } catch (error) {

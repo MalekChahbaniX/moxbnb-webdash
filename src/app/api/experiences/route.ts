@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     }
 
     const experiences = await Experience.find(filter)
-      .populate('host', 'id name email avatar')
+      .populate('hostId', 'id name email avatar')
       .sort({ createdAt: -1 });
 
     return NextResponse.json(experiences);
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       hostId
     });
     
-    await experience.populate('host', 'id name avatar');
+    await experience.populate('hostId', 'id name avatar');
 
     return NextResponse.json(experience, { status: 201 });
   } catch (error) {

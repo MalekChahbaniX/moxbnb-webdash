@@ -94,4 +94,4 @@ serviceSchema.index({ providerId: 1 });
 serviceSchema.index({ isAvailable: 1 });
 serviceSchema.index({ createdAt: -1 });
 
-export const Service = mongoose.model<IService>('Service', serviceSchema);
+export const Service = mongoose.models.Service || mongoose.model<IService>('Service', serviceSchema);

@@ -44,4 +44,4 @@ messageSchema.index({ receiverId: 1, isRead: 1 });
 messageSchema.index({ bookingId: 1 });
 messageSchema.index({ createdAt: -1 });
 
-export const Message = mongoose.model<IMessage>('Message', messageSchema);
+export const Message = mongoose.models.Message || mongoose.model<IMessage>('Message', messageSchema);

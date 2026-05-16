@@ -20,6 +20,113 @@ export default function ProfilePage() {
   const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
 
+  const getRoleLabel = (role: string | undefined) => {
+    const normalizedRole = role?.toLowerCase();
+
+    if (normalizedRole === 'admin') return t('profile.admin');
+    if (normalizedRole === 'host') return t('profile.host');
+    if (normalizedRole === 'provider' || normalizedRole === 'serviceprovider' || normalizedRole === 'serviceProvider') return t('profile.provider');
+    return t('profile.client');
+  };
+
+  const normalizedRole = user?.role?.toLowerCase();
+  const isTraveler = normalizedRole === 'traveler' || normalizedRole === 'client';
+  const isHost = normalizedRole === 'host';
+  const isProvider = normalizedRole === 'provider' || normalizedRole === 'serviceprovider';
+  const isAdmin = normalizedRole === 'admin';
+
+  const profileSubtitle = isProvider
+    ? t('profile.subtitleProvider')
+    : isHost
+      ? t('profile.subtitleHost')
+      : isAdmin
+        ? t('profile.subtitleAdmin')
+        : t('profile.subtitle');
+
+  const quickActions = isTraveler
+    ? [
+        {
+          title: t('profile.myBookings'),
+          description: t('profile.manageBookings'),
+          icon: Calendar,
+          href: '/bookings',
+        },
+        {
+          title: t('profile.preferences'),
+          description: t('profile.customizeExperience'),
+          icon: User,
+          href: '/preferences',
+        },
+        {
+          title: t('profile.security'),
+          description: t('profile.manageSecurity'),
+          icon: Shield,
+          href: '/security',
+        },
+      ]
+    : isHost
+      ? [
+          {
+            title: t('profile.myProperties'),
+            description: t('profile.manageProperties'),
+            icon: User,
+            href: '/host/listings',
+          },
+          {
+            title: t('profile.myBookings'),
+            description: t('profile.manageReservations'),
+            icon: Calendar,
+            href: '/host/bookings',
+          },
+          {
+            title: t('profile.messages'),
+            description: t('profile.manageMessages'),
+            icon: Shield,
+            href: '/messages',
+          },
+        ]
+      : isProvider
+        ? [
+            {
+              title: t('profile.myServices'),
+              description: t('profile.manageServices'),
+              icon: User,
+              href: '/provider/services',
+            },
+            {
+              title: t('profile.myClients'),
+              description: t('profile.viewClients'),
+              icon: Calendar,
+              href: '/provider/clients',
+            },
+            {
+              title: t('profile.myEarnings'),
+              description: t('profile.viewEarnings'),
+              icon: Shield,
+              href: '/provider/earnings',
+            },
+          ]
+        : [
+            {
+              title: t('profile.myBookings'),
+              description: t('profile.manageBookings'),
+              icon: Calendar,
+              href: '/bookings',
+            },
+            {
+              title: t('profile.preferences'),
+              description: t('profile.customizeExperience'),
+              icon: User,
+              href: '/preferences',
+            },
+            {
+              title: t('profile.security'),
+              description: t('profile.manageSecurity'),
+              icon: Shield,
+              href: '/security',
+            },
+          ];
+
   if (!isAuthenticated || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -51,7 +158,7 @@ export default function ProfilePage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">{t('profile.title')}</h1>
-          <p className="text-gray-600 mt-2">{t('profile.subtitle')}</p>
+          <p className="text-gray-600 mt-2">{profileSubtitle}</p>
         </div>
 
         {/* Profile Card */}
@@ -71,8 +178,7 @@ export default function ProfilePage() {
                   </CardTitle>
                   <CardDescription className="flex items-center mt-1">
                     <Shield className="h-4 w-4 mr-1" />
-                    {user.role === 'ADMIN' ? t('profile.admin') : 
-                     user.role === 'HOST' ? t('profile.host') : t('profile.client')}
+                    {getRoleLabel(user.role)}
                   </CardDescription>
                 </div>
               </div>
@@ -153,8 +259,7 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('profile.accountType')}</span>
                   <Badge variant="outline">
-                    {user.role === 'ADMIN' ? t('profile.admin') : 
-                     user.role === 'HOST' ? t('profile.host') : t('profile.client')}
+                    {getRoleLabel(user.role)}
                   </Badge>
                 </div>
               </div>
@@ -178,29 +283,20 @@ export default function ProfilePage() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6 text-center">
-              <Calendar className="h-8 w-8 mx-auto mb-2 text-rose-600" />
-              <h3 className="font-semibold">{t('profile.myBookings')}</h3>
-              <p className="text-sm text-gray-600 mt-1">Gérez vos réservations</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6 text-center">
-              <User className="h-8 w-8 mx-auto mb-2 text-rose-600" />
-              <h3 className="font-semibold">{t('profile.preferences')}</h3>
-              <p className="text-sm text-gray-600 mt-1">Personnalisez votre expérience</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6 text-center">
-              <Shield className="h-8 w-8 mx-auto mb-2 text-rose-600" />
-              <h3 className="font-semibold">{t('profile.security')}</h3>
-              <p className="text-sm text-gray-600 mt-1">Gérez votre sécurité</p>
-            </CardContent>
-          </Card>
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Link key={action.title} href={action.href || '#'} className="block">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                  <CardContent className="p-6 text-center">
+                    <Icon className="h-8 w-8 mx-auto mb-2 text-rose-600" />
+                    <h3 className="font-semibold">{action.title}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{action.description}</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
 
         {/* Danger Zone */}

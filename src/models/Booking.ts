@@ -68,4 +68,4 @@ bookingSchema.index({ checkIn: 1, checkOut: 1 });
 bookingSchema.index({ status: 1 });
 bookingSchema.index({ createdAt: -1 });
 
-export const Booking = mongoose.model<IBooking>('Booking', bookingSchema);
+export const Booking = mongoose.models.Booking || mongoose.model<IBooking>('Booking', bookingSchema);

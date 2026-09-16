@@ -96,6 +96,26 @@ export const authService = {
     }
   },
 
+  async verifyEmail(token: string): Promise<AuthResponse> {
+    try {
+      const response = await api.post<AuthResponse>('/auth/verify-email', { token });
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'Email verification failed';
+      throw new Error(errorMessage);
+    }
+  },
+
+  async resendVerification(email: string): Promise<AuthResponse> {
+    try {
+      const response = await api.post<AuthResponse>('/auth/resend-verification', { email });
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'Could not resend verification email';
+      throw new Error(errorMessage);
+    }
+  },
+
   // Logout user
   async logout(): Promise<void> {
     try {

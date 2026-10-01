@@ -320,7 +320,7 @@ export default function ServicesPage() {
       </section>
 
       {/* ---------- type chips + toggles (sticky) ---------- */}
-      <div className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur">
+      <div className="sticky top-16 z-30 border-b bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
           <div
             className="-mx-1 flex flex-1 gap-2 overflow-x-auto px-1 py-1"

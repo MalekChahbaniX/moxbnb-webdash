@@ -1,20 +1,25 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { MapPin, LayoutGrid, Building2, Home, Waves, BedDouble, Trees } from 'lucide-react';
 import Header from '@/components/moxbnb/Header';
 import Footer from '@/components/moxbnb/Footer';
-import PropertyCard from '@/components/moxbnb/PropertyCard';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  ListingHero,
+  FieldInput,
+  SelectField,
+  ChipBar,
+  ResultsToolbar,
+  CardGrid,
+  CardSkeletonGrid,
+  ListingCard,
+  StateMessage,
+  LoadMore,
+  PAGE_SIZE,
+  type ChipOption,
+} from '@/components/moxbnb/listing-kit';
+import { Button } from '@/components/ui/button';
 
 const allProperties = [
   {
@@ -25,7 +30,7 @@ const allProperties = [
     price: 350,
     rating: 4.9,
     reviews: 127,
-    image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop'
+    image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop',
   },
   {
     id: '2',
@@ -35,7 +40,7 @@ const allProperties = [
     price: 750,
     rating: 4.8,
     reviews: 89,
-    image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop'
+    image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop',
   },
   {
     id: '3',
@@ -45,7 +50,7 @@ const allProperties = [
     price: 280,
     rating: 4.95,
     reviews: 203,
-    image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop'
+    image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop',
   },
   {
     id: '4',
@@ -55,7 +60,7 @@ const allProperties = [
     price: 180,
     rating: 4.7,
     reviews: 56,
-    image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
+    image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
   },
   {
     id: '5',
@@ -65,17 +70,17 @@ const allProperties = [
     price: 420,
     rating: 4.92,
     reviews: 78,
-    image: 'https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?w=800&h=600&fit=crop'
+    image: 'https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?w=800&h=600&fit=crop',
   },
   {
     id: '6',
-    title: 'Pentasse Moderne Tunis Centre',
+    title: 'Penthouse Moderne Tunis Centre',
     type: 'Appartement',
     location: 'Tunis, Tunis',
     price: 450,
     rating: 4.85,
     reviews: 145,
-    image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'
+    image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
   },
   {
     id: '7',
@@ -85,7 +90,7 @@ const allProperties = [
     price: 850,
     rating: 4.88,
     reviews: 167,
-    image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop'
+    image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop',
   },
   {
     id: '8',
@@ -95,7 +100,7 @@ const allProperties = [
     price: 220,
     rating: 4.75,
     reviews: 93,
-    image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
+    image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
   },
   {
     id: '9',
@@ -105,188 +110,162 @@ const allProperties = [
     price: 320,
     rating: 4.82,
     reviews: 78,
-    image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop'
-  }
+    image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop',
+  },
+];
+
+const typeChips: ChipOption[] = [
+  { value: 'all', label: 'Tous', icon: LayoutGrid },
+  { value: 'Appartement', label: 'Appartements', icon: Building2 },
+  { value: 'Maison', label: 'Maisons', icon: Home },
+  { value: 'Villa', label: 'Villas', icon: Waves },
+  { value: 'Chambre privée', label: 'Chambres privées', icon: BedDouble },
+  { value: 'Cabane', label: 'Cabanes', icon: Trees },
+];
+
+// villes présentes dans les données (Sousse n'a aucun logement pour l'instant)
+const cityOptions = [
+  { value: 'all', label: 'Toutes les villes' },
+  ...['Tunis', 'Hammamet', 'Djerba', 'Monastir', 'Tozeur', 'Sfax', 'Kairouan', 'Mahdia'].map((c) => ({
+    value: c,
+    label: c,
+  })),
+];
+
+const sortOptions = [
+  { value: 'relevance', label: 'Pertinence' },
+  { value: 'price-asc', label: 'Prix croissant' },
+  { value: 'price-desc', label: 'Prix décroissant' },
+  { value: 'rating', label: 'Mieux notés' },
 ];
 
 function PropertiesContent() {
   const searchParams = useSearchParams();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedType, setSelectedType] = useState('all');
-  const [selectedCity, setSelectedCity] = useState('all');
+  const urlLocation = searchParams.get('location') ?? '';
+
+  const [searchTerm, setSearchTerm] = useState(urlLocation);
+  const [type, setType] = useState('all');
+  const [city, setCity] = useState('all');
   const [sortBy, setSortBy] = useState('relevance');
-  const [filteredProperties, setFilteredProperties] = useState(allProperties);
+  const [visible, setVisible] = useState(PAGE_SIZE);
 
-  // Initialize form values from URL parameters
+  // keep the field in sync when the user arrives with a new ?location=
   useEffect(() => {
-    const location = searchParams.get('location');
-    const checkIn = searchParams.get('checkIn');
-    const checkOut = searchParams.get('checkOut');
-    const guests = searchParams.get('guests');
-    
-    if (location) {
-      setSearchTerm(location);
-    }
-  }, [searchParams]);
+    setSearchTerm(urlLocation);
+    setVisible(PAGE_SIZE);
+  }, [urlLocation]);
 
-  // Filter properties based on search criteria
-  useEffect(() => {
-    let filtered = [...allProperties];
+  const results = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    const list = allProperties.filter((p) => {
+      if (type !== 'all' && p.type !== type) return false;
+      if (city !== 'all' && !p.location.toLowerCase().includes(city.toLowerCase())) return false;
+      if (!q) return true;
+      return p.title.toLowerCase().includes(q) || p.location.toLowerCase().includes(q);
+    });
 
-    // Filter by search term (location/title)
-    if (searchTerm) {
-      filtered = filtered.filter(property =>
-        property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        property.location.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+    const sorted = [...list];
+    if (sortBy === 'price-asc') sorted.sort((a, b) => a.price - b.price);
+    if (sortBy === 'price-desc') sorted.sort((a, b) => b.price - a.price);
+    if (sortBy === 'rating') sorted.sort((a, b) => b.rating - a.rating);
+    return sorted;
+  }, [searchTerm, type, city, sortBy]);
 
-    // Filter by type
-    if (selectedType !== 'all') {
-      const typeMap = {
-        'apartment': 'Appartement',
-        'house': 'Maison',
-        'villa': 'Villa',
-        'privateRoom': 'Chambre privée',
-        'cabin': 'Cabane'
-      };
-      filtered = filtered.filter(property => property.type === typeMap[selectedType]);
-    }
+  const hasFilters = searchTerm !== '' || type !== 'all' || city !== 'all';
 
-    // Filter by city
-    if (selectedCity !== 'all') {
-      const cityMap = {
-        'tunis': 'Tunis',
-        'hammamet': 'Hammamet',
-        'sousse': 'Sousse',
-        'sfax': 'Sfax',
-        'djerba': 'Djerba',
-        'monastir': 'Monastir'
-      };
-      filtered = filtered.filter(property => 
-        property.location.includes(cityMap[selectedCity])
-      );
-    }
+  const reset = () => {
+    setSearchTerm('');
+    setType('all');
+    setCity('all');
+    setSortBy('relevance');
+    setVisible(PAGE_SIZE);
+  };
 
-    // Sort properties
-    switch (sortBy) {
-      case 'price-asc':
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-desc':
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-      case 'rating':
-        filtered.sort((a, b) => b.rating - a.rating);
-        break;
-      default: // relevance
-        // Keep original order or implement relevance logic
-        break;
-    }
-
-    setFilteredProperties(filtered);
-  }, [searchTerm, selectedType, selectedCity, sortBy]);
+  const withReset =
+    <T,>(setter: (v: T) => void) =>
+    (v: T) => {
+      setter(v);
+      setVisible(PAGE_SIZE);
+    };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col bg-white text-slate-900">
       <Header />
-      
-      <header className="border-b bg-white">
-        <div className="container mx-auto px-4 py-6">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Tous les logements</h1>
-          <p className="text-muted-foreground mb-6">
-            Trouvez le logement parfait pour votre séjour en Tunisie
-          </p>
 
-          {/* Search and Filters */}
-          <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
-                <Input
-                  placeholder="Rechercher une destination..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+      <ListingHero
+        title="Un logement pour chaque façon de voyager"
+        subtitle="Des appartements de la médina aux villas avec piscine, trouvez l'endroit qui vous ressemble."
+      >
+        <FieldInput
+          className="flex-1"
+          value={searchTerm}
+          onChange={withReset(setSearchTerm)}
+          placeholder="Une destination ou un nom de logement"
+          label="Rechercher un logement"
+        />
+        <SelectField
+          value={city}
+          onChange={withReset(setCity)}
+          options={cityOptions}
+          placeholder="Ville"
+          label="Ville"
+        />
+      </ListingHero>
+
+      <ChipBar
+        options={typeChips}
+        value={type}
+        onChange={withReset(setType)}
+        label="Type de logement"
+      />
+
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+        <ResultsToolbar
+          countText={`${results.length} logement${results.length > 1 ? 's' : ''}`}
+          hasFilters={hasFilters}
+          onReset={reset}
+          sort={sortBy}
+          onSort={setSortBy}
+          sortOptions={sortOptions}
+        />
+
+        {results.length === 0 ? (
+          <StateMessage
+            title="Aucun logement ne correspond"
+            text="Essayez un autre type de logement ou une autre ville."
+            action={
+              hasFilters && (
+                <Button variant="outline" onClick={reset}>
+                  Réinitialiser les filtres
+                </Button>
+              )
+            }
+          />
+        ) : (
+          <>
+            <CardGrid>
+              {results.slice(0, visible).map((p) => (
+                <ListingCard
+                  key={p.id}
+                  href={`/properties/${p.id}`}
+                  image={p.image}
+                  title={p.title}
+                  badge={p.type}
+                  meta={[{ icon: MapPin, text: p.location }]}
+                  price={p.price}
+                  priceSuffix="/ nuit"
+                  rating={p.rating}
+                  reviews={p.reviews}
                 />
-              </div>
-              
-              <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger className="w-full md:w-48">
-                  <SelectValue placeholder="Type de logement" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les types</SelectItem>
-                  <SelectItem value="apartment">Appartement</SelectItem>
-                  <SelectItem value="house">Maison</SelectItem>
-                  <SelectItem value="villa">Villa</SelectItem>
-                  <SelectItem value="privateRoom">Chambre privée</SelectItem>
-                  <SelectItem value="cabin">Cabane</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedCity} onValueChange={setSelectedCity}>
-                <SelectTrigger className="w-full md:w-48">
-                  <SelectValue placeholder="Ville" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toutes les villes</SelectItem>
-                  <SelectItem value="tunis">Tunis</SelectItem>
-                  <SelectItem value="hammamet">Hammamet</SelectItem>
-                  <SelectItem value="sousse">Sousse</SelectItem>
-                  <SelectItem value="sfax">Sfax</SelectItem>
-                  <SelectItem value="djerba">Djerba</SelectItem>
-                  <SelectItem value="monastir">Monastir</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full md:w-48">
-                  <SelectValue placeholder="Trier par" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="relevance">Pertinence</SelectItem>
-                  <SelectItem value="price-asc">Prix croissant</SelectItem>
-                  <SelectItem value="price-desc">Prix décroissant</SelectItem>
-                  <SelectItem value="rating">Note</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1">
-                <SlidersHorizontal className="h-4 w-4 mr-2" />
-                Plus de filtres
-              </Button>
-              <Button className="flex-1 bg-rose-600 hover:bg-rose-700">
-                <Search className="h-4 w-4 mr-2" />
-                Rechercher
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProperties.map((property) => (
-            <PropertyCard key={property.id} {...property} />
-          ))}
-        </div>
-
-        {filteredProperties.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground text-lg">
-              Aucun logement trouvé pour votre recherche.
-            </p>
-          </div>
+              ))}
+            </CardGrid>
+            <LoadMore
+              shown={Math.min(visible, results.length)}
+              total={results.length}
+              onClick={() => setVisible((v) => v + PAGE_SIZE)}
+            />
+          </>
         )}
-
-        <div className="text-center mt-12">
-          <Button variant="outline" size="lg">
-            Charger plus de logements
-          </Button>
-        </div>
       </main>
 
       <Footer />
@@ -296,7 +275,13 @@ function PropertiesContent() {
 
 export default function PropertiesPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><p>Chargement...</p></div>}>
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-6xl px-4 py-16">
+          <CardSkeletonGrid />
+        </div>
+      }
+    >
       <PropertiesContent />
     </Suspense>
   );

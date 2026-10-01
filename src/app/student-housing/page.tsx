@@ -1,21 +1,21 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { MapPin } from 'lucide-react';
 import Header from '@/components/moxbnb/Header';
 import Footer from '@/components/moxbnb/Footer';
-import PropertyCard from '@/components/moxbnb/PropertyCard';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Loader } from 'lucide-react';
+import { ListingHero,  FieldInput,
+  ChipBar,
+  ResultsToolbar,
+  CardGrid,
+  CardSkeletonGrid,
+  ListingCard,
+  StateMessage,
+  Pager,
+  useDebounced,
+  type ChipOption, } from '@/components/moxbnb/listing-kit';
 
 interface StudentListing {
   _id: string;
@@ -34,192 +34,229 @@ interface StudentListing {
   reviews?: number;
 }
 
+const PER_PAGE = 12;
+
 function StudentHousingContent() {
+  const { t, language } = useLanguage();
+  // tiny helper so every string stays on one line
+  const L = (en: string, fr: string, ar: string) =>
+    language === 'en' ? en : language === 'fr' ? fr : ar;
+
   const [listings, setListings] = useState<StudentListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [totalListings, setTotalListings] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState({
-    city: '',
-    pricingType: '',
-    maxPrice: ''
-  });
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const { t, language } = useLanguage();
-  const searchParams = useSearchParams();
+  const [cityInput, setCityInput] = useState('');
+  const [maxPriceInput, setMaxPriceInput] = useState('');
+  const [pricingType, setPricingType] = useState('all');
+
+  // typing shouldn't fire one request per keystroke
+  const city = useDebounced(cityInput.trim());
+  const maxPrice = useDebounced(maxPriceInput.trim());
+
+  // any filter change goes back to page 1
+  useEffect(() => {
+    setPage(1);
+  }, [city, maxPrice, pricingType]);
 
   useEffect(() => {
-    fetchStudentListings();
-  }, [filters, currentPage]);
+    const controller = new AbortController();
 
-  const fetchStudentListings = async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.append('page', currentPage.toString());
-      params.append('limit', '12');
+    async function fetchListings() {
+      setLoading(true);
+      setError('');
+      try {
+        const params = new URLSearchParams({ page: String(page), limit: String(PER_PAGE) });
+        if (city) params.append('city', city);
+        if (pricingType !== 'all') params.append('pricingType', pricingType);
+        if (maxPrice) params.append('maxPrice', maxPrice);
 
-      if (filters.city) params.append('city', filters.city);
-      if (filters.pricingType) params.append('pricingType', filters.pricingType);
-      if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
+        const response = await fetch(`/api/listings/students?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        const data = await response.json();
 
-      const response = await fetch(`/api/listings/students?${params.toString()}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setListings(data.data);
-        setTotalListings(data.pagination.total);
-      } else {
-        setError(data.error || 'Failed to fetch listings');
+        if (data.success) {
+          setListings(data.data);
+          setTotal(data.pagination.total);
+        } else {
+          setError(data.error || L('Failed to fetch listings', 'Impossible de charger les logements', 'تعذر تحميل الإقامات'));
+        }
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+        setError(
+          L(
+            'Error fetching student listings',
+            'Erreur lors du chargement des logements étudiants',
+            'حدث خطأ أثناء تحميل الإقامات الطلابية'
+          )
+        );
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
       }
-    } catch (err) {
-      setError('Error fetching student listings');
-    } finally {
-      setLoading(false);
     }
+
+    fetchListings();
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [city, maxPrice, pricingType, page, reloadKey]);
+
+  const totalPages = Math.ceil(total / PER_PAGE);
+  const hasFilters = cityInput !== '' || maxPriceInput !== '' || pricingType !== 'all';
+
+  const reset = () => {
+    setCityInput('');
+    setMaxPriceInput('');
+    setPricingType('all');
   };
 
-  const handleFilterChange = (key: string, value: string) => {
-    setFilters({ ...filters, [key]: value });
-    setCurrentPage(1);
+  const pricingChips: ChipOption[] = [
+    { value: 'all', label: L('All types', 'Tous les types', 'جميع الأنواع') },
+    { value: 'NIGHTLY', label: t('properties.nightly') },
+    { value: 'MONTHLY', label: t('properties.monthly') },
+    { value: 'BOTH', label: t('properties.both') },
+  ];
+
+  const perNight = L('/ night', '/ nuit', '/ ليلة');
+  const perMonth = L('/ month', '/ mois', '/ شهر');
+
+  const priceProps = (l: StudentListing) => {
+    if (l.pricingType === 'MONTHLY') {
+      return { price: l.monthlyPrice ?? l.price, priceSuffix: perMonth };
+    }
+    return {
+      price: l.price,
+      priceSuffix: perNight,
+      altPrice:
+        l.pricingType === 'BOTH' && l.monthlyPrice
+          ? `${L('or', 'ou', 'أو')} ${l.monthlyPrice} DT ${perMonth}`
+          : undefined,
+    };
   };
 
-  const totalPages = Math.ceil(totalListings / 12);
+  const countText = loading
+    ? L('Loading…', 'Chargement…', 'جارٍ التحميل…')
+    : error
+    ? ''
+    : L(
+        `${total} listing${total === 1 ? '' : 's'}`,
+        `${total} logement${total > 1 ? 's' : ''}`,
+        `${total} إقامة`
+      );
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col bg-white text-slate-900">
       <Header />
-      
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            {t('properties.studentListings')}
-          </h1>
-          <p className="text-muted-foreground">
-            {language === 'en' 
-              ? 'Find accommodation options specifically curated for students'
-              : language === 'fr'
-              ? 'Trouvez des options de logement spécialement sélectionnées pour les étudiants'
-              : 'ابحث عن خيارات الإقامة المحددة خصيصًا للطلاب'}
-          </p>
-        </div>
 
-        {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Input
-            placeholder={language === 'en' ? 'Search by city...' : language === 'fr' ? 'Rechercher par ville...' : 'البحث بالمدينة...'}
-            value={filters.city}
-            onChange={(e) => handleFilterChange('city', e.target.value)}
-          />
+      <ListingHero
+        title={t('properties.studentListings')}
+        subtitle={L(
+          'Find accommodation options specifically curated for students',
+          'Trouvez des options de logement spécialement sélectionnées pour les étudiants',
+          'ابحث عن خيارات الإقامة المحددة خصيصًا للطلاب'
+        )}
+      >
+        <FieldInput
+          className="flex-1"
+          value={cityInput}
+          onChange={setCityInput}
+          placeholder={L('Search by city', 'Rechercher par ville', 'البحث بالمدينة')}
+          label={L('City', 'Ville', 'المدينة')}
+        />
+        <FieldInput
+          className="md:w-56"
+          type="number"
+          withIcon={false}
+          value={maxPriceInput}
+          onChange={setMaxPriceInput}
+          placeholder={L('Max price (DT)', 'Prix max (DT)', 'السعر الأقصى (DT)')}
+          label={L('Max price', 'Prix maximum', 'السعر الأقصى')}
+        />
+      </ListingHero>
 
-          <Select value={filters.pricingType || 'ALL'} onValueChange={(value) => handleFilterChange('pricingType', value === 'ALL' ? '' : value)}>
-            <SelectTrigger>
-              <SelectValue placeholder={language === 'en' ? 'Pricing Type' : language === 'fr' ? 'Type de prix' : 'نوع السعر'} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">
-                {language === 'en' ? 'All Types' : language === 'fr' ? 'Tous les types' : 'جميع الأنواع'}
-              </SelectItem>
-              <SelectItem value="NIGHTLY">
-                {t('properties.nightly')}
-              </SelectItem>
-              <SelectItem value="MONTHLY">
-                {t('properties.monthly')}
-              </SelectItem>
-              <SelectItem value="BOTH">
-                {t('properties.both')}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+      <ChipBar
+        options={pricingChips}
+        value={pricingType}
+        onChange={setPricingType}
+        label={L('Pricing type', 'Type de prix', 'نوع السعر')}
+      />
 
-          <Input
-            type="number"
-            placeholder={language === 'en' ? 'Max Price (DT)' : language === 'fr' ? 'Prix Max (DT)' : 'السعر الأقصى (DT)'}
-            value={filters.maxPrice}
-            onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-          />
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+        <ResultsToolbar
+          countText={countText}
+          hasFilters={hasFilters}
+          onReset={reset}
+          resetLabel={L('Reset', 'Réinitialiser', 'إعادة تعيين')}
+        />
 
-          <Button 
-            variant="outline"
-            onClick={() => setFilters({ city: '', pricingType: '', maxPrice: '' })}
-          >
-            {language === 'en' ? 'Reset' : language === 'fr' ? 'Réinitialiser' : 'إعادة تعيين'}
-          </Button>
-        </div>
-
-        {/* Listings */}
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <Loader className="h-8 w-8 animate-spin text-rose-600" />
-          </div>
+          <CardSkeletonGrid count={6} />
         ) : error ? (
-          <div className="text-center py-12 text-red-600">
-            {error}
-          </div>
+          <StateMessage
+            title={error}
+            text={L(
+              'Check your connection and try again.',
+              'Vérifiez votre connexion puis réessayez.',
+              'تحقق من اتصالك ثم حاول مرة أخرى.'
+            )}
+            action={
+              <Button onClick={() => setReloadKey((k) => k + 1)}>
+                {L('Try again', 'Réessayer', 'إعادة المحاولة')}
+              </Button>
+            }
+          />
         ) : listings.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">
-              {language === 'en' 
-                ? 'No student accommodations found with these filters'
-                : language === 'fr'
-                ? 'Aucun logement étudiant trouvé avec ces filtres'
-                : 'لم يتم العثور على إقامات طلابية بهذه المرشحات'}
-            </p>
-          </div>
+          <StateMessage
+            title={L(
+              'No student accommodations found',
+              'Aucun logement étudiant trouvé',
+              'لم يتم العثور على إقامات طلابية'
+            )}
+            text={L(
+              'Try another city or raise the maximum price.',
+              'Essayez une autre ville ou augmentez le prix maximum.',
+              'جرّب مدينة أخرى أو ارفع السعر الأقصى.'
+            )}
+            action={
+              hasFilters && (
+                <Button variant="outline" onClick={reset}>
+                  {L('Reset filters', 'Réinitialiser les filtres', 'إعادة تعيين المرشحات')}
+                </Button>
+              )
+            }
+          />
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {listings.map((listing) => (
-                <PropertyCard
-                  key={listing._id}
-                  id={listing._id}
-                  title={listing.title}
-                  type={listing.type}
-                  location={listing.address}
-                  price={listing.price}
-                  monthlyPrice={listing.monthlyPrice}
-                  pricingType={listing.pricingType}
-                  rating={listing.rating || 0}
-                  reviews={listing.reviews || 0}
-                  image={listing.images[0] || '/placeholder.jpg'}
-                  targetAudience={listing.targetAudience}
-                  latitude={listing.latitude}
-                  longitude={listing.longitude}
+            <CardGrid>
+              {listings.map((l) => (
+                <ListingCard
+                  key={l._id}
+                  href={`/properties/${l._id}`}
+                  image={l.images?.[0] || '/placeholder.jpg'}
+                  title={l.title}
+                  badge={l.type}
+                  meta={[{ icon: MapPin, text: l.address || l.city }]}
+                  rating={l.rating || 0}
+                  reviews={l.reviews || 0}
+                  newLabel={L('New', 'Nouveau', 'جديد')}
+                  {...priceProps(l)}
                 />
               ))}
-            </div>
+            </CardGrid>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-8">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  {language === 'en' ? 'Previous' : language === 'fr' ? 'Précédent' : 'السابق'}
-                </Button>
-
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? 'default' : 'outline'}
-                    onClick={() => setCurrentPage(page)}
-                  >
-                    {page}
-                  </Button>
-                ))}
-
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  {language === 'en' ? 'Next' : language === 'fr' ? 'Suivant' : 'التالي'}
-                </Button>
-              </div>
-            )}
+            <Pager
+              page={page}
+              totalPages={totalPages}
+              onChange={(p) => {
+                setPage(p);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              prevLabel={L('Previous', 'Précédent', 'السابق')}
+              nextLabel={L('Next', 'Suivant', 'التالي')}
+            />
           </>
         )}
       </main>
@@ -231,14 +268,13 @@ function StudentHousingContent() {
 
 export default function StudentHousingPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader className="h-8 w-8 animate-spin text-rose-600 mx-auto mb-4" />
-          <p>Chargement...</p>
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-6xl px-4 py-16">
+          <CardSkeletonGrid />
         </div>
-      </div>
-    }>
+      }
+    >
       <StudentHousingContent />
     </Suspense>
   );

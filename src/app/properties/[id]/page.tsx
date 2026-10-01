@@ -1,83 +1,175 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { addDays, format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { 
-  MapPin, 
-  Calendar, 
-  Users, 
-  Home, 
-  Bath, 
-  Bed, 
-  Calendar as CalendarIcon, 
+import { addDays, differenceInCalendarDays, format, startOfToday } from 'date-fns';
+import { ar, enUS, fr } from 'date-fns/locale';
+import type { DateRange } from 'react-day-picker';
+import {
+  MapPin,
+  Users,
+  Bath,
+  Bed,
+  Home,
   Share2,
   Heart,
-  CheckCircle,
+  Check,
   ChevronLeft,
-  Image as ImageIcon,
+  ChevronRight,
+  X,
+  Minus,
+  Plus,
+  Grid2x2,
   Wifi,
   Car,
   Snowflake,
   Waves,
   Utensils,
-  Star
+  Tv,
+  Coffee,
+  Sun,
+  Star,
+  CalendarDays,
+  ShieldCheck,
+  MessageCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import ContactHostModal from '@/components/moxbnb/ContactHostModal';
-import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
+
+const PLACEHOLDER = '/api/placeholder/800/600';
+
+/* ---------- helpers ---------- */
+
+const amenityIcon = (name: string) => {
+  const n = name.toLowerCase();
+  if (n.includes('wifi')) return Wifi;
+  if (n.includes('clim')) return Snowflake;
+  if (n.includes('mer') || n.includes('piscine')) return Waves;
+  if (n.includes('cuisine')) return Utensils;
+  if (n.includes('parking')) return Car;
+  if (n.includes('tv') || n.includes('télé')) return Tv;
+  if (n.includes('café') || n.includes('petit')) return Coffee;
+  if (n.includes('terrasse') || n.includes('jardin')) return Sun;
+  return Check;
+};
+
+const reviewsCount = (p: any): number =>
+  Array.isArray(p?.reviews) ? p.reviews.length : Number(p?.reviews) || 0;
+
+const hostFullName = (p: any, fallback: string): string => {
+  const first = p?.hostId?.firstName;
+  const last = p?.hostId?.lastName;
+  return first || last ? `${first || ''} ${last || ''}`.trim() : fallback;
+};
+
+const propertyTypeLabel = (type: string | undefined, t: (key: string) => string): string => {
+  const typeKeys: Record<string, string> = {
+    apartment: 'properties.apartment',
+    appartement: 'properties.apartment',
+    house: 'properties.house',
+    maison: 'properties.house',
+    villa: 'properties.villa',
+    'private room': 'properties.privateRoom',
+    private_room: 'properties.privateRoom',
+    'chambre privée': 'properties.privateRoom',
+    cabin: 'properties.cabin',
+    cabane: 'properties.cabin',
+  };
+  const key = type ? typeKeys[type.trim().toLowerCase()] : undefined;
+  return key ? t(key) : type || t('propertyDetail.defaultTitle');
+};
+
+/* ---------- page ---------- */
 
 export default function PropertyDetail() {
   const params = useParams();
   const router = useRouter();
-  const { t } = useLanguage();
-  const { user, isAuthenticated } = useAuth();
-  const [selectedImage, setSelectedImage] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [checkIn, setCheckIn] = useState<Date | undefined>(new Date());
-  const [checkOut, setCheckOut] = useState<Date | undefined>(addDays(new Date(), 5));
-  const [guests, setGuests] = useState(2);
-  const [isCheckInOpen, setIsCheckInOpen] = useState(false);
-  const [isCheckOutOpen, setIsCheckOutOpen] = useState(false);
+  const { user } = useAuth();
+  const { language, t } = useLanguage();
+  const dateLocale = language === 'ar' ? ar : language === 'en' ? enUS : fr;
+
   const [property, setProperty] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [lightbox, setLightbox] = useState<number | null>(null);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
+  const [range, setRange] = useState<DateRange | undefined>({
+    from: addDays(startOfToday(), 1),
+    to: addDays(startOfToday(), 4),
+  });
+  const [isDatesOpen, setIsDatesOpen] = useState(false);
+  const [guests, setGuests] = useState(2);
+
+  /* fetch */
   useEffect(() => {
+    if (!params.id) return;
     const fetchProperty = async () => {
       try {
         setLoading(true);
         const response = await api.get(`/listings/${params.id}`);
-        const propertyData = response.data?.data?.listing || response.data?.data || response.data;
-        console.log('Property data:', propertyData);
-        setProperty(propertyData);
+        const data = response.data?.data?.listing || response.data?.data || response.data;
+        setProperty(data);
       } catch (err) {
         console.error('Error fetching property:', err);
-        setError('Failed to load property');
+        setError('propertyDetail.loadError');
       } finally {
         setLoading(false);
       }
     };
-
-    if (params.id) {
-      fetchProperty();
-    }
+    fetchProperty();
   }, [params.id]);
 
+  const images: string[] = useMemo(
+    () => (property?.images?.length ? property.images : [PLACEHOLDER]),
+    [property]
+  );
+
+  /* lightbox keyboard controls (hook stays above early returns) */
+  const closeLightbox = useCallback(() => setLightbox(null), []);
+  const stepLightbox = useCallback(
+    (dir: 1 | -1) =>
+      setLightbox((i) => (i === null ? i : (i + dir + images.length) % images.length)),
+    [images.length]
+  );
+
+  useEffect(() => {
+    if (lightbox === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') stepLightbox(1);
+      if (e.key === 'ArrowLeft') stepLightbox(-1);
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [lightbox, closeLightbox, stepLightbox]);
+
+  /* loading / error */
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mx-auto mb-4"></div>
-          <p>Chargement...</p>
+      <div className="min-h-screen bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-8 animate-pulse">
+          <div className="h-8 w-1/2 rounded-lg bg-slate-100 mb-6" />
+          <div className="h-[420px] rounded-3xl bg-slate-100 mb-8" />
+          <div className="grid lg:grid-cols-[1fr_380px] gap-10">
+            <div className="space-y-4">
+              <div className="h-6 w-2/3 rounded bg-slate-100" />
+              <div className="h-4 w-full rounded bg-slate-100" />
+              <div className="h-4 w-5/6 rounded bg-slate-100" />
+            </div>
+            <div className="h-80 rounded-2xl bg-slate-100" />
+          </div>
         </div>
       </div>
     );
@@ -85,333 +177,470 @@ export default function PropertyDetail() {
 
   if (error || !property) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">{error || 'Property not found'}</p>
-          <Button onClick={() => router.back()}>Retour</Button>
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <p className="text-slate-900 font-medium mb-1">
+            {error ? t(error) : t('propertyDetail.notFound')}
+          </p>
+          <p className="text-sm text-slate-500 mb-5">
+            {t('propertyDetail.loadErrorHint')}
+          </p>
+          <Button onClick={() => router.back()}>{t('propertyDetail.back')}</Button>
         </div>
       </div>
     );
   }
 
-  const getAmenityIcon = (amenity: string) => {
-    const iconMap: Record<string, any> = {
-      'WiFi': Wifi,
-      'Climatisation': Snowflake,
-      'Vue mer': Waves,
-      'Cuisine équipée': Utensils,
-      'Parking': Car
-    };
-    return iconMap[amenity] || CheckCircle;
-  };
+  /* derived values */
+  const price = Number(property.price) || 0;
+  const nights =
+    range?.from && range?.to ? Math.max(differenceInCalendarDays(range.to, range.from), 0) : 0;
+  const total = nights * price;
+  const maxGuests = Number(property.maxGuests) || 8;
+  const rating = property.rating ? Number(property.rating).toFixed(1) : null;
+  const nReviews = reviewsCount(property);
+  const amenities: string[] = property.amenities || [];
+  const rules: string[] = property.houseRules || [];
+  const hostName = hostFullName(property, t('propertyDetail.hostFallback'));
+  const propertyType = propertyTypeLabel(property.type, t);
+  const hostSince = new Date(property.hostId?.createdAt || Date.now()).getFullYear();
 
   const handleBooking = () => {
-    if (!checkIn || !checkOut) {
-      alert('Veuillez sélectionner vos dates');
+    if (!range?.from || !range?.to || nights < 1) {
+      setIsDatesOpen(true);
       return;
     }
-    // Navigate to booking confirmation page
-    router.push(`/bookings/confirm?propertyId=${params.id}&checkIn=${checkIn.toISOString()}&checkOut=${checkOut.toISOString()}&guests=${guests}`);
+    router.push(
+      `/bookings/confirm?propertyId=${params.id}&checkIn=${range.from.toISOString()}&checkOut=${range.to.toISOString()}&guests=${guests}`
+    );
   };
 
-  const handleContactHost = () => {
-    // Open internal contact modal
-    setIsContactModalOpen(true);
-  };
+  const datesLabel =
+    range?.from && range?.to
+      ? `${format(range.from, 'd MMM', { locale: dateLocale })} → ${format(range.to, 'd MMM yyyy', { locale: dateLocale })}`
+      : t('propertyDetail.chooseDates');
+
+  const facts = [
+    { icon: Bed, label: `${property.bedrooms} ${t(Number(property.bedrooms) === 1 ? 'propertyDetail.bedroom' : 'propertyDetail.bedroomsPlural')}` },
+    { icon: Bath, label: `${property.bathrooms} ${t(Number(property.bathrooms) === 1 ? 'propertyDetail.bathroom' : 'propertyDetail.bathroomsPlural')}` },
+    { icon: Users, label: `${property.maxGuests} ${t('propertyDetail.maximumGuests')}` },
+  ].filter((f) => !f.label.startsWith('undefined'));
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-white">
-        <div className="container mx-auto px-4 py-4">
-          <Button 
-            variant="ghost" 
+    <div className="min-h-screen bg-white text-slate-900">
+      {/* ---------- top bar ---------- */}
+      <header className="mx-auto max-w-6xl px-4 pt-5 pb-4">
+        <div className="flex items-center justify-between mb-4">
+          <button
             onClick={() => router.back()}
-            className="mb-2"
+            className="inline-flex items-center gap-1 rounded-full py-1.5 pr-3 pl-2 text-sm text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700"
           >
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Retour
-          </Button>
-          <h1 className="text-2xl md:text-3xl font-bold">{property.title || 'Logement'}</h1>
+            <ChevronLeft className="h-4 w-4" />
+            {t('propertyDetail.back')}
+          </button>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" className="rounded-full gap-2">
+              <Share2 className="h-4 w-4" />
+              <span className="hidden sm:inline">{t('propertyDetail.share')}</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-full gap-2"
+              onClick={() => setIsFavorite(!isFavorite)}
+              aria-pressed={isFavorite}
+            >
+              <Heart
+                className={`h-4 w-4 ${isFavorite ? 'fill-rose-600 text-rose-600' : ''}`}
+              />
+              <span className="hidden sm:inline">
+                {isFavorite ? t('propertyDetail.saved') : t('propertyDetail.save')}
+              </span>
+            </Button>
+          </div>
+        </div>
+
+        <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-balance">
+          {property.title || t('propertyDetail.defaultTitle')}
+        </h1>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
+          <span className="inline-flex items-center gap-1">
+            <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+            {rating ? (
+              <>
+                <b className="text-slate-900">{rating}</b>
+                <span>({nReviews} {t(nReviews === 1 ? 'propertyDetail.reviewCount' : 'propertyDetail.reviewCountPlural')})</span>
+              </>
+            ) : (
+              <span>{t('propertyDetail.new')}</span>
+            )}
+          </span>
+          {property.location && (
+            <span className="inline-flex items-center gap-1">
+              <MapPin className="h-4 w-4" />
+              {property.location}
+            </span>
+          )}
+          {property.type && (
+            <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-900">
+              {propertyType}
+            </span>
+          )}
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Property Details */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Image Gallery */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="col-span-2 row-span-2">
-                <img
-                  src={property.images?.[selectedImage] || '/api/placeholder/800/600'}
-                  alt={property.title}
-                  className="w-full h-96 object-cover rounded-lg cursor-pointer"
-                  onClick={() => setSelectedImage(0)}
-                />
-              </div>
-              {property.images?.slice(1).map((image: string, index: number) => (
-                <img
-                  key={index}
-                  src={image}
-                  alt={`${property.title} ${index + 2}`}
-                  className={`w-full h-44 object-cover rounded-lg cursor-pointer ${
-                    selectedImage === index + 1 ? 'ring-4 ring-rose-500' : ''
-                  }`}
-                  onClick={() => setSelectedImage(index + 1)}
-                />
-              ))}
-            </div>
+      {/* ---------- gallery ---------- */}
+      <section className="mx-auto max-w-6xl px-4">
+        {/* mobile: single hero */}
+        <div className="relative md:hidden">
+          <img
+            src={images[0]}
+            alt={property.title || t('propertyDetail.defaultTitle')}
+            className="h-72 w-full rounded-2xl object-cover"
+            onClick={() => setLightbox(0)}
+          />
+          <button
+            onClick={() => setLightbox(0)}
+            className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-medium shadow"
+          >
+            <Grid2x2 className="h-3.5 w-3.5" />
+            {images.length} {t(images.length === 1 ? 'propertyDetail.photoCount' : 'propertyDetail.photoCountPlural')}
+          </button>
+        </div>
 
-            {/* Quick Info */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center">
-                  <Star className="h-5 w-5 fill-yellow-400 text-yellow-400 mr-1" />
-                  <span className="font-semibold">{property.rating}</span>
-                  <span className="text-muted-foreground ml-1">({property.reviews} avis)</span>
-                </div>
-                <div className="flex items-center text-muted-foreground">
-                  <MapPin className="h-4 w-4 mr-1" />
-                  {property.location}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="icon">
-                  <Share2 className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => setIsFavorite(!isFavorite)}
-                >
-                  <Heart className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
-                </Button>
-              </div>
-            </div>
+        {/* desktop: bento */}
+        <div
+          className={`relative hidden md:grid gap-2 overflow-hidden rounded-3xl h-[440px] ${
+            images.length > 1 ? 'grid-cols-4 grid-rows-2' : 'grid-cols-1'
+          }`}
+        >
+          <button
+            onClick={() => setLightbox(0)}
+            className={`group overflow-hidden ${images.length > 1 ? 'col-span-2 row-span-2' : ''}`}
+            aria-label={`${t('propertyDetail.openPhoto')} 1`}
+          >
+            <img
+              src={images[0]}
+              alt={property.title}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            />
+          </button>
+          {images.slice(1, 5).map((src, i) => (
+            <button
+              key={i}
+              onClick={() => setLightbox(i + 1)}
+              className="group overflow-hidden"
+              aria-label={`${t('propertyDetail.openPhoto')} ${i + 2}`}
+            >
+              <img
+                src={src}
+                alt={`${property.title} ${i + 2}`}
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+              />
+            </button>
+          ))}
+          {images.length > 1 && (
+            <button
+              onClick={() => setLightbox(0)}
+              className="absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium shadow-md hover:bg-slate-50"
+            >
+              <Grid2x2 className="h-4 w-4" />
+              {t('propertyDetail.viewPhotos')} ({images.length})
+            </button>
+          )}
+        </div>
+      </section>
 
-            <Separator />
-
-            {/* Description */}
+      {/* ---------- body ---------- */}
+      <main className="mx-auto max-w-6xl px-4 py-10 grid gap-12 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="space-y-12">
+          {/* facts strip + host */}
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-8">
             <div>
-              <h2 className="text-xl font-semibold mb-4">À propos de ce logement</h2>
-              <p className="text-muted-foreground leading-relaxed">
-                {property.description}
+              <h2 className="text-xl font-semibold">
+                {propertyType} {t('propertyDetail.hostedBy')} {hostName}
+              </h2>
+              <p className="mt-1 text-sm text-slate-600">
+                {facts.map((f) => f.label).join(' · ')}
               </p>
             </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-900 text-white font-semibold">
+              {hostName.charAt(0).toUpperCase()}
+            </div>
+          </div>
 
-            {/* Amenities */}
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Ce que propose ce logement</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {(property.amenities || []).map((amenity: string, index: number) => {
-                  const Icon = getAmenityIcon(amenity);
+          {/* description */}
+          <section>
+            <h2 className="text-xl font-semibold mb-3">{t('propertyDetail.about')}</h2>
+            <p className="max-w-[65ch] leading-relaxed text-slate-600">
+              {property.description || t('propertyDetail.descriptionFallback')}
+            </p>
+          </section>
+
+          {/* amenities */}
+          {amenities.length > 0 && (
+            <section>
+              <h2 className="text-xl font-semibold mb-4">{t('propertyDetail.amenitiesTitle')}</h2>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {amenities.map((a, i) => {
+                  const Icon = amenityIcon(a);
                   return (
-                    <div key={index} className="flex items-center space-x-2">
-                      <Icon className="h-5 w-5 text-rose-600" />
-                      <span className="text-sm">{amenity}</span>
-                    </div>
+                    <li
+                      key={i}
+                      className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3"
+                    >
+                      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-50 text-sky-900">
+                        <Icon className="h-[18px] w-[18px]" />
+                      </span>
+                      <span className="text-sm font-medium">{a}</span>
+                    </li>
                   );
                 })}
-              </div>
-            </div>
+              </ul>
+            </section>
+          )}
 
-            <Separator />
-
-            {/* Property Features */}
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Caractéristiques</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Bed className="h-5 w-5" />
-                  <span>{property.bedrooms} chambre{property.bedrooms > 1 ? 's' : ''}</span>
-                </div>
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Bath className="h-5 w-5" />
-                  <span>{property.bathrooms} SDB</span>
-                </div>
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Users className="h-5 w-5" />
-                  <span>Max {property.maxGuests} voyageurs</span>
-                </div>
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Home className="h-5 w-5" />
-                  <Badge variant="outline">{property.type}</Badge>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* House Rules */}
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Règles de la maison</h2>
-              <ul className="space-y-2">
-                {(property.houseRules || []).map((rule: string, index: number) => (
-                  <li key={index} className="flex items-start space-x-2">
-                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                    <span className="text-muted-foreground">{rule}</span>
+          {/* rules */}
+          <section>
+            <h2 className="text-xl font-semibold mb-4">{t('propertyDetail.houseRules')}</h2>
+            {rules.length > 0 ? (
+              <ul className="space-y-2.5">
+                {rules.map((rule, i) => (
+                  <li key={i} className="flex items-start gap-3 text-slate-600">
+                    <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600" />
+                    <span>{rule}</span>
                   </li>
                 ))}
               </ul>
+            ) : (
+              <p className="text-sm text-slate-500">
+                {t('propertyDetail.noHouseRules')}
+              </p>
+            )}
+          </section>
+
+          {/* host block (mobile-friendly, mirrors the card) */}
+          <section className="rounded-2xl bg-sky-50 p-6">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-sky-900 text-lg font-semibold text-white">
+                {hostName.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="font-semibold">{hostName}</p>
+                <p className="text-sm text-slate-600">{t('propertyDetail.memberSince')} {hostSince}</p>
+              </div>
             </div>
-          </div>
-
-          {/* Right Column - Booking Card */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-4 z-40">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <span className="text-2xl font-bold text-rose-600">{property.price || 0} DT</span>
-                    <span className="text-muted-foreground text-sm">/ nuit</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                    <span className="font-medium">{property.rating || 'N/A'}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3 mb-6">
-                  <div className="border rounded-lg p-3">
-                    <label className="block text-sm font-medium mb-2">Dates</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Popover open={isCheckInOpen} onOpenChange={setIsCheckInOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal h-12"
-                            id="check-in-trigger"
-                          >
-                            <CalendarIcon className="h-4 w-4 mr-2" />
-                            {checkIn ? format(checkIn, 'dd MMM yyyy', { locale: fr }) : "Arrivée"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start" side="bottom">
-                          <Calendar
-                            mode="single"
-                            selected={checkIn}
-                            onSelect={(date) => {
-                              setCheckIn(date);
-                              setIsCheckInOpen(false);
-                            }}
-                            disabled={(date) => date < new Date()}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <Popover open={isCheckOutOpen} onOpenChange={setIsCheckOutOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal h-12"
-                            id="check-out-trigger"
-                          >
-                            <CalendarIcon className="h-4 w-4 mr-2" />
-                            {checkOut ? format(checkOut, 'dd MMM yyyy', { locale: fr }) : "Départ"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start" side="bottom">
-                          <Calendar
-                            mode="single"
-                            selected={checkOut}
-                            onSelect={(date) => {
-                              setCheckOut(date);
-                              setIsCheckOutOpen(false);
-                            }}
-                            disabled={(date) => !checkIn || date < checkIn}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-
-                  <div className="border rounded-lg p-3">
-                    <label className="block text-sm font-medium mb-2">Voyageurs</label>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{guests} voyageur{guests > 1 ? 's' : ''}</span>
-                      </div>
-                      <select 
-                        className="border rounded px-3 py-1 text-sm" 
-                        value={guests}
-                        onChange={(e) => setGuests(parseInt(e.target.value))}
-                      >
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                        <option value="7">7</option>
-                        <option value="8">8</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <Button 
-                  className="w-full bg-rose-600 hover:bg-rose-700 mb-3" 
-                  size="lg"
-                  onClick={handleBooking}
-                >
-                  Réserver
-                </Button>
-
-                <p className="text-xs text-center text-muted-foreground mb-4">
-                  Aucun montant ne vous sera débité pour le moment
-                </p>
-
-                <Separator className="my-4" />
-
-                {/* Host Info */}
-                <div className="space-y-3">
-                  <h3 className="font-semibold">Votre hôte</h3>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center">
-                      <Users className="h-6 w-6 text-rose-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{property.hostId?.firstName && property.hostId?.lastName ? `${property.hostId.firstName} ${property.hostId.lastName}` : 'Hôte'}</p>
-                      <p className="text-sm text-muted-foreground">Membre depuis {new Date(property.hostId?.createdAt || Date.now()).getFullYear()}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Taux de réponse</span>
-                      <span className="font-medium">95%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Temps de réponse</span>
-                      <span className="font-medium">Quelques heures</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Avis reçus</span>
-                      <span className="font-medium">{property.reviews?.length || 0}</span>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={handleContactHost}
-                  >
-                    Contacter l'hôte
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+            <dl className="mt-5 grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <dt className="text-slate-500">{t('propertyDetail.responseRate')}</dt>
+                <dd className="font-semibold">95 %</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">{t('propertyDetail.responseTime')}</dt>
+                <dd className="font-semibold">{t('propertyDetail.aFewHours')}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">{t('propertyDetail.reviewsReceived')}</dt>
+                <dd className="font-semibold">{nReviews}</dd>
+              </div>
+            </dl>
+            <Button
+              variant="outline"
+              className="mt-5 rounded-full bg-white gap-2"
+              onClick={() => setIsContactModalOpen(true)}
+            >
+              <MessageCircle className="h-4 w-4" />
+              {t('propertyDetail.contactHost')}
+            </Button>
+          </section>
         </div>
+
+        {/* ---------- booking card ---------- */}
+        <aside id="reserver" className="lg:sticky lg:top-6 lg:self-start scroll-mt-6">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_8px_30px_rgb(15_58_91/0.08)]">
+            <div className="flex items-baseline justify-between">
+              <p>
+                <span className="text-3xl font-semibold tracking-tight">{price} DT</span>
+                <span className="text-sm text-slate-500"> {t('propertyDetail.perNight')}</span>
+              </p>
+              {rating && (
+                <span className="inline-flex items-center gap-1 text-sm">
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                  {rating}
+                </span>
+              )}
+            </div>
+
+            {/* dates */}
+            <Popover open={isDatesOpen} onOpenChange={setIsDatesOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  className="mt-5 flex w-full items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-left hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700"
+                >
+                  <CalendarDays className="h-5 w-5 text-slate-500" />
+                  <span className="flex-1">
+                    <span className="block text-xs text-slate-500">{t('propertyDetail.stayDates')}</span>
+                    <span className="block text-sm font-medium">{datesLabel}</span>
+                  </span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="range"
+                  numberOfMonths={1}
+                  selected={range}
+                  onSelect={(r) => {
+                    setRange(r);
+                    if (r?.from && r?.to && r.to > r.from) setIsDatesOpen(false);
+                  }}
+                  disabled={{ before: startOfToday() }}
+                  locale={dateLocale}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+
+            {/* guests stepper */}
+            <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3">
+              <Users className="h-5 w-5 text-slate-500" />
+              <span className="flex-1">
+                <span className="block text-xs text-slate-500">{t('propertyDetail.guests')}</span>
+                <span className="block text-sm font-medium">
+                  {guests} {t(guests === 1 ? 'propertyDetail.guest' : 'propertyDetail.guestPlural')}
+                </span>
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setGuests((g) => Math.max(1, g - 1))}
+                  disabled={guests <= 1}
+                  aria-label={t('propertyDetail.removeGuest')}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 disabled:opacity-30 hover:bg-slate-50"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setGuests((g) => Math.min(maxGuests, g + 1))}
+                  disabled={guests >= maxGuests}
+                  aria-label={t('propertyDetail.addGuest')}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 disabled:opacity-30 hover:bg-slate-50"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <Button
+              size="lg"
+              onClick={handleBooking}
+              className="mt-5 h-12 w-full rounded-2xl bg-rose-600 text-base hover:bg-rose-700"
+            >
+              {nights > 0
+                ? `${t('propertyDetail.bookNights')} ${nights} ${t(nights === 1 ? 'propertyDetail.night' : 'propertyDetail.nightPlural')}`
+                : t('propertyDetail.chooseDatesToBook')}
+            </Button>
+
+            <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-500">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              {t('propertyDetail.noChargeYet')}
+            </p>
+
+            {nights > 0 && (
+              <div className="mt-5 space-y-2 border-t pt-5 text-sm">
+                <div className="flex justify-between text-slate-600">
+                  <span>
+                    {price} DT × {nights} {t(nights === 1 ? 'propertyDetail.night' : 'propertyDetail.nightPlural')}
+                  </span>
+                  <span>{total} DT</span>
+                </div>
+                <div className="flex justify-between text-base font-semibold">
+                  <span>{t('propertyDetail.total')}</span>
+                  <span>{total} DT</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </aside>
       </main>
 
-      {/* Contact Host Modal */}
+      {/* ---------- mobile sticky bar ---------- */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+          <div>
+            <p className="font-semibold">
+              {price} DT <span className="text-sm font-normal text-slate-500">{t('propertyDetail.perNight')}</span>
+            </p>
+            <p className="text-xs text-slate-500">{datesLabel}</p>
+          </div>
+          <Button
+            className="rounded-xl bg-rose-600 px-6 hover:bg-rose-700"
+            onClick={() =>
+              document.getElementById('reserver')?.scrollIntoView({ behavior: 'smooth' })
+            }
+          >
+            {t('propertyDetail.book')}
+          </Button>
+        </div>
+      </div>
+      <div className="h-20 lg:hidden" />
+
+      {/* ---------- lightbox ---------- */}
+      {lightbox !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('propertyDetail.galleryLabel')}
+          onClick={closeLightbox}
+        >
+          <button
+            onClick={closeLightbox}
+            aria-label={t('propertyDetail.close')}
+            className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  stepLightbox(-1);
+                }}
+                aria-label={t('propertyDetail.previousPhoto')}
+                className="absolute left-4 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  stepLightbox(1);
+                }}
+                aria-label={t('propertyDetail.nextPhoto')}
+                className="absolute right-4 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            </>
+          )}
+          <img
+            src={images[lightbox]}
+            alt={`${property.title} ${lightbox + 1}`}
+            className="max-h-[85vh] max-w-[92vw] rounded-lg object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <p className="absolute bottom-5 text-sm text-white/80">
+            {lightbox + 1} / {images.length}
+          </p>
+        </div>
+      )}
+
+      {/* ---------- contact modal ---------- */}
       <ContactHostModal
         isOpen={isContactModalOpen}
         onClose={() => setIsContactModalOpen(false)}
         hostId={property?.hostId?._id}
-        hostName={`${property?.hostId?.firstName || ''} ${property?.hostId?.lastName || ''}`.trim() || 'Hôte'}
+        hostName={hostName}
         propertyTitle={property?.title}
         userId={user?.id}
       />

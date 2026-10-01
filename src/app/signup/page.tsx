@@ -560,7 +560,7 @@ export default function SignupPage() {
               </button>
 
               {/* Social */}
-              <div className="divider">
+              {/* <div className="divider">
                 <span className="divider-line" />
                 <span className="divider-text">{t('auth.signup.orContinueWith')}</span>
                 <span className="divider-line" />
@@ -573,7 +573,7 @@ export default function SignupPage() {
                 <button type="button" className="social-btn" disabled={loading}>
                   <FacebookIcon />Facebook
                 </button>
-              </div>
+              </div> */}
 
               {/* Role links */}
               <div className="role-section">

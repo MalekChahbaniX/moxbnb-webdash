@@ -53,11 +53,11 @@ export default function Footer() {
               </li>
               <li className="flex items-center space-x-2">
                 <Phone className="h-5 w-5 flex-shrink-0" />
-                <span>+216 71 123 456</span>
+                <span>+216 28 653 396</span>
               </li>
               <li className="flex items-center space-x-2">
                 <Mail className="h-5 w-5 flex-shrink-0" />
-                <span>contact@moxbnb.tn</span>
+                <span>contact@moxbnb.com</span>
               </li>
             </ul>
           </div>

@@ -5,9 +5,17 @@ function resolveApiBaseUrl(): string {
     return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '');
   }
   return process.env.NODE_ENV === 'production'
-    ? 'https://moxbnb-back.onrender.com/api'
+    ? 'https://api.moxbnb.com/api'
     : 'http://localhost:3002/api';
 }
+// function resolveApiBaseUrl(): string {
+//   if (process.env.NEXT_PUBLIC_API_URL) {
+//     return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '');
+//   }
+//   return process.env.NODE_ENV === 'production'
+//     ? 'https://moxbnb-back.onrender.com/api'
+//     : 'http://localhost:3002/api';
+// }
 
 const API_BASE_URL = resolveApiBaseUrl();
 

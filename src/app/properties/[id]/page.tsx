@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { addDays, differenceInCalendarDays, format, startOfToday } from 'date-fns';
-import { ar, enUS, fr } from 'date-fns/locale';
+import { fr } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
 import {
   MapPin,
@@ -38,7 +38,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 import ContactHostModal from '@/components/moxbnb/ContactHostModal';
 
 const PLACEHOLDER = '/api/placeholder/800/600';
@@ -61,27 +60,10 @@ const amenityIcon = (name: string) => {
 const reviewsCount = (p: any): number =>
   Array.isArray(p?.reviews) ? p.reviews.length : Number(p?.reviews) || 0;
 
-const hostFullName = (p: any, fallback: string): string => {
+const hostFullName = (p: any): string => {
   const first = p?.hostId?.firstName;
   const last = p?.hostId?.lastName;
-  return first || last ? `${first || ''} ${last || ''}`.trim() : fallback;
-};
-
-const propertyTypeLabel = (type: string | undefined, t: (key: string) => string): string => {
-  const typeKeys: Record<string, string> = {
-    apartment: 'properties.apartment',
-    appartement: 'properties.apartment',
-    house: 'properties.house',
-    maison: 'properties.house',
-    villa: 'properties.villa',
-    'private room': 'properties.privateRoom',
-    private_room: 'properties.privateRoom',
-    'chambre privée': 'properties.privateRoom',
-    cabin: 'properties.cabin',
-    cabane: 'properties.cabin',
-  };
-  const key = type ? typeKeys[type.trim().toLowerCase()] : undefined;
-  return key ? t(key) : type || t('propertyDetail.defaultTitle');
+  return first || last ? `${first || ''} ${last || ''}`.trim() : 'Hôte';
 };
 
 /* ---------- page ---------- */
@@ -90,8 +72,6 @@ export default function PropertyDetail() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const { language, t } = useLanguage();
-  const dateLocale = language === 'ar' ? ar : language === 'en' ? enUS : fr;
 
   const [property, setProperty] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -119,7 +99,7 @@ export default function PropertyDetail() {
         setProperty(data);
       } catch (err) {
         console.error('Error fetching property:', err);
-        setError('propertyDetail.loadError');
+        setError('Impossible de charger ce logement.');
       } finally {
         setLoading(false);
       }
@@ -180,12 +160,12 @@ export default function PropertyDetail() {
       <div className="min-h-screen bg-white flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
           <p className="text-slate-900 font-medium mb-1">
-            {error ? t(error) : t('propertyDetail.notFound')}
+            {error || 'Logement introuvable'}
           </p>
           <p className="text-sm text-slate-500 mb-5">
-            {t('propertyDetail.loadErrorHint')}
+            Vérifiez votre connexion ou revenez à la liste des logements.
           </p>
-          <Button onClick={() => router.back()}>{t('propertyDetail.back')}</Button>
+          <Button onClick={() => router.back()}>Retour</Button>
         </div>
       </div>
     );
@@ -201,8 +181,7 @@ export default function PropertyDetail() {
   const nReviews = reviewsCount(property);
   const amenities: string[] = property.amenities || [];
   const rules: string[] = property.houseRules || [];
-  const hostName = hostFullName(property, t('propertyDetail.hostFallback'));
-  const propertyType = propertyTypeLabel(property.type, t);
+  const hostName = hostFullName(property);
   const hostSince = new Date(property.hostId?.createdAt || Date.now()).getFullYear();
 
   const handleBooking = () => {
@@ -217,13 +196,13 @@ export default function PropertyDetail() {
 
   const datesLabel =
     range?.from && range?.to
-      ? `${format(range.from, 'd MMM', { locale: dateLocale })} → ${format(range.to, 'd MMM yyyy', { locale: dateLocale })}`
-      : t('propertyDetail.chooseDates');
+      ? `${format(range.from, 'd MMM', { locale: fr })} → ${format(range.to, 'd MMM yyyy', { locale: fr })}`
+      : 'Choisir vos dates';
 
   const facts = [
-    { icon: Bed, label: `${property.bedrooms} ${t(Number(property.bedrooms) === 1 ? 'propertyDetail.bedroom' : 'propertyDetail.bedroomsPlural')}` },
-    { icon: Bath, label: `${property.bathrooms} ${t(Number(property.bathrooms) === 1 ? 'propertyDetail.bathroom' : 'propertyDetail.bathroomsPlural')}` },
-    { icon: Users, label: `${property.maxGuests} ${t('propertyDetail.maximumGuests')}` },
+    { icon: Bed, label: `${property.bedrooms} chambre${property.bedrooms > 1 ? 's' : ''}` },
+    { icon: Bath, label: `${property.bathrooms} salle${property.bathrooms > 1 ? 's' : ''} de bain` },
+    { icon: Users, label: `${property.maxGuests} voyageurs max` },
   ].filter((f) => !f.label.startsWith('undefined'));
 
   return (
@@ -236,12 +215,12 @@ export default function PropertyDetail() {
             className="inline-flex items-center gap-1 rounded-full py-1.5 pr-3 pl-2 text-sm text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700"
           >
             <ChevronLeft className="h-4 w-4" />
-            {t('propertyDetail.back')}
+            Retour
           </button>
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" className="rounded-full gap-2">
               <Share2 className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('propertyDetail.share')}</span>
+              <span className="hidden sm:inline">Partager</span>
             </Button>
             <Button
               variant="ghost"
@@ -253,15 +232,13 @@ export default function PropertyDetail() {
               <Heart
                 className={`h-4 w-4 ${isFavorite ? 'fill-rose-600 text-rose-600' : ''}`}
               />
-              <span className="hidden sm:inline">
-                {isFavorite ? t('propertyDetail.saved') : t('propertyDetail.save')}
-              </span>
+              <span className="hidden sm:inline">{isFavorite ? 'Enregistré' : 'Enregistrer'}</span>
             </Button>
           </div>
         </div>
 
         <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-balance">
-          {property.title || t('propertyDetail.defaultTitle')}
+          {property.title || 'Logement'}
         </h1>
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
           <span className="inline-flex items-center gap-1">
@@ -269,10 +246,10 @@ export default function PropertyDetail() {
             {rating ? (
               <>
                 <b className="text-slate-900">{rating}</b>
-                <span>({nReviews} {t(nReviews === 1 ? 'propertyDetail.reviewCount' : 'propertyDetail.reviewCountPlural')})</span>
+                <span>({nReviews} avis)</span>
               </>
             ) : (
-              <span>{t('propertyDetail.new')}</span>
+              <span>Nouveau</span>
             )}
           </span>
           {property.location && (
@@ -283,7 +260,7 @@ export default function PropertyDetail() {
           )}
           {property.type && (
             <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-900">
-              {propertyType}
+              {property.type}
             </span>
           )}
         </div>
@@ -295,7 +272,7 @@ export default function PropertyDetail() {
         <div className="relative md:hidden">
           <img
             src={images[0]}
-            alt={property.title || t('propertyDetail.defaultTitle')}
+            alt={property.title}
             className="h-72 w-full rounded-2xl object-cover"
             onClick={() => setLightbox(0)}
           />
@@ -304,7 +281,7 @@ export default function PropertyDetail() {
             className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-medium shadow"
           >
             <Grid2x2 className="h-3.5 w-3.5" />
-            {images.length} {t(images.length === 1 ? 'propertyDetail.photoCount' : 'propertyDetail.photoCountPlural')}
+            {images.length} photo{images.length > 1 ? 's' : ''}
           </button>
         </div>
 
@@ -317,7 +294,7 @@ export default function PropertyDetail() {
           <button
             onClick={() => setLightbox(0)}
             className={`group overflow-hidden ${images.length > 1 ? 'col-span-2 row-span-2' : ''}`}
-            aria-label={`${t('propertyDetail.openPhoto')} 1`}
+            aria-label="Ouvrir la photo 1"
           >
             <img
               src={images[0]}
@@ -330,7 +307,7 @@ export default function PropertyDetail() {
               key={i}
               onClick={() => setLightbox(i + 1)}
               className="group overflow-hidden"
-              aria-label={`${t('propertyDetail.openPhoto')} ${i + 2}`}
+              aria-label={`Ouvrir la photo ${i + 2}`}
             >
               <img
                 src={src}
@@ -345,20 +322,20 @@ export default function PropertyDetail() {
               className="absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium shadow-md hover:bg-slate-50"
             >
               <Grid2x2 className="h-4 w-4" />
-              {t('propertyDetail.viewPhotos')} ({images.length})
+              Voir les {images.length} photos
             </button>
           )}
         </div>
       </section>
 
       {/* ---------- body ---------- */}
-      <main className="mx-auto max-w-6xl px-4 py-10 grid gap-12 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <main className="mx-auto max-w-6xl px-4 py-10 grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-12">
         <div className="space-y-12">
           {/* facts strip + host */}
           <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-8">
             <div>
               <h2 className="text-xl font-semibold">
-                {propertyType} {t('propertyDetail.hostedBy')} {hostName}
+                {property.type || 'Logement'} proposé par {hostName}
               </h2>
               <p className="mt-1 text-sm text-slate-600">
                 {facts.map((f) => f.label).join(' · ')}
@@ -371,16 +348,16 @@ export default function PropertyDetail() {
 
           {/* description */}
           <section>
-            <h2 className="text-xl font-semibold mb-3">{t('propertyDetail.about')}</h2>
+            <h2 className="text-xl font-semibold mb-3">À propos de ce logement</h2>
             <p className="max-w-[65ch] leading-relaxed text-slate-600">
-              {property.description || t('propertyDetail.descriptionFallback')}
+              {property.description || "L'hôte n'a pas encore ajouté de description."}
             </p>
           </section>
 
           {/* amenities */}
           {amenities.length > 0 && (
             <section>
-              <h2 className="text-xl font-semibold mb-4">{t('propertyDetail.amenitiesTitle')}</h2>
+              <h2 className="text-xl font-semibold mb-4">Ce que propose ce logement</h2>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {amenities.map((a, i) => {
                   const Icon = amenityIcon(a);
@@ -402,7 +379,7 @@ export default function PropertyDetail() {
 
           {/* rules */}
           <section>
-            <h2 className="text-xl font-semibold mb-4">{t('propertyDetail.houseRules')}</h2>
+            <h2 className="text-xl font-semibold mb-4">Règles de la maison</h2>
             {rules.length > 0 ? (
               <ul className="space-y-2.5">
                 {rules.map((rule, i) => (
@@ -414,7 +391,7 @@ export default function PropertyDetail() {
               </ul>
             ) : (
               <p className="text-sm text-slate-500">
-                {t('propertyDetail.noHouseRules')}
+                Aucune règle particulière. Contactez l'hôte pour toute question.
               </p>
             )}
           </section>
@@ -427,20 +404,20 @@ export default function PropertyDetail() {
               </div>
               <div>
                 <p className="font-semibold">{hostName}</p>
-                <p className="text-sm text-slate-600">{t('propertyDetail.memberSince')} {hostSince}</p>
+                <p className="text-sm text-slate-600">Membre depuis {hostSince}</p>
               </div>
             </div>
             <dl className="mt-5 grid grid-cols-3 gap-4 text-sm">
               <div>
-                <dt className="text-slate-500">{t('propertyDetail.responseRate')}</dt>
+                <dt className="text-slate-500">Taux de réponse</dt>
                 <dd className="font-semibold">95 %</dd>
               </div>
               <div>
-                <dt className="text-slate-500">{t('propertyDetail.responseTime')}</dt>
-                <dd className="font-semibold">{t('propertyDetail.aFewHours')}</dd>
+                <dt className="text-slate-500">Réponse en</dt>
+                <dd className="font-semibold">Quelques heures</dd>
               </div>
               <div>
-                <dt className="text-slate-500">{t('propertyDetail.reviewsReceived')}</dt>
+                <dt className="text-slate-500">Avis reçus</dt>
                 <dd className="font-semibold">{nReviews}</dd>
               </div>
             </dl>
@@ -450,7 +427,7 @@ export default function PropertyDetail() {
               onClick={() => setIsContactModalOpen(true)}
             >
               <MessageCircle className="h-4 w-4" />
-              {t('propertyDetail.contactHost')}
+              Contacter l'hôte
             </Button>
           </section>
         </div>
@@ -461,7 +438,7 @@ export default function PropertyDetail() {
             <div className="flex items-baseline justify-between">
               <p>
                 <span className="text-3xl font-semibold tracking-tight">{price} DT</span>
-                <span className="text-sm text-slate-500"> {t('propertyDetail.perNight')}</span>
+                <span className="text-sm text-slate-500"> / nuit</span>
               </p>
               {rating && (
                 <span className="inline-flex items-center gap-1 text-sm">
@@ -479,7 +456,7 @@ export default function PropertyDetail() {
                 >
                   <CalendarDays className="h-5 w-5 text-slate-500" />
                   <span className="flex-1">
-                    <span className="block text-xs text-slate-500">{t('propertyDetail.stayDates')}</span>
+                    <span className="block text-xs text-slate-500">Dates du séjour</span>
                     <span className="block text-sm font-medium">{datesLabel}</span>
                   </span>
                 </button>
@@ -494,7 +471,7 @@ export default function PropertyDetail() {
                     if (r?.from && r?.to && r.to > r.from) setIsDatesOpen(false);
                   }}
                   disabled={{ before: startOfToday() }}
-                  locale={dateLocale}
+                  locale={fr}
                   initialFocus
                 />
               </PopoverContent>
@@ -504,16 +481,16 @@ export default function PropertyDetail() {
             <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3">
               <Users className="h-5 w-5 text-slate-500" />
               <span className="flex-1">
-                <span className="block text-xs text-slate-500">{t('propertyDetail.guests')}</span>
+                <span className="block text-xs text-slate-500">Voyageurs</span>
                 <span className="block text-sm font-medium">
-                  {guests} {t(guests === 1 ? 'propertyDetail.guest' : 'propertyDetail.guestPlural')}
+                  {guests} voyageur{guests > 1 ? 's' : ''}
                 </span>
               </span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setGuests((g) => Math.max(1, g - 1))}
                   disabled={guests <= 1}
-                  aria-label={t('propertyDetail.removeGuest')}
+                  aria-label="Retirer un voyageur"
                   className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 disabled:opacity-30 hover:bg-slate-50"
                 >
                   <Minus className="h-4 w-4" />
@@ -521,7 +498,7 @@ export default function PropertyDetail() {
                 <button
                   onClick={() => setGuests((g) => Math.min(maxGuests, g + 1))}
                   disabled={guests >= maxGuests}
-                  aria-label={t('propertyDetail.addGuest')}
+                  aria-label="Ajouter un voyageur"
                   className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 disabled:opacity-30 hover:bg-slate-50"
                 >
                   <Plus className="h-4 w-4" />
@@ -534,26 +511,24 @@ export default function PropertyDetail() {
               onClick={handleBooking}
               className="mt-5 h-12 w-full rounded-2xl bg-rose-600 text-base hover:bg-rose-700"
             >
-              {nights > 0
-                ? `${t('propertyDetail.bookNights')} ${nights} ${t(nights === 1 ? 'propertyDetail.night' : 'propertyDetail.nightPlural')}`
-                : t('propertyDetail.chooseDatesToBook')}
+              {nights > 0 ? `Réserver ${nights} nuit${nights > 1 ? 's' : ''}` : 'Choisir des dates'}
             </Button>
 
             <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-500">
               <ShieldCheck className="h-3.5 w-3.5" />
-              {t('propertyDetail.noChargeYet')}
+              Aucun montant ne vous sera débité pour le moment
             </p>
 
             {nights > 0 && (
               <div className="mt-5 space-y-2 border-t pt-5 text-sm">
                 <div className="flex justify-between text-slate-600">
                   <span>
-                    {price} DT × {nights} {t(nights === 1 ? 'propertyDetail.night' : 'propertyDetail.nightPlural')}
+                    {price} DT × {nights} nuit{nights > 1 ? 's' : ''}
                   </span>
                   <span>{total} DT</span>
                 </div>
                 <div className="flex justify-between text-base font-semibold">
-                  <span>{t('propertyDetail.total')}</span>
+                  <span>Total</span>
                   <span>{total} DT</span>
                 </div>
               </div>
@@ -567,7 +542,7 @@ export default function PropertyDetail() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <div>
             <p className="font-semibold">
-              {price} DT <span className="text-sm font-normal text-slate-500">{t('propertyDetail.perNight')}</span>
+              {price} DT <span className="text-sm font-normal text-slate-500">/ nuit</span>
             </p>
             <p className="text-xs text-slate-500">{datesLabel}</p>
           </div>
@@ -577,7 +552,7 @@ export default function PropertyDetail() {
               document.getElementById('reserver')?.scrollIntoView({ behavior: 'smooth' })
             }
           >
-            {t('propertyDetail.book')}
+            Réserver
           </Button>
         </div>
       </div>
@@ -589,12 +564,12 @@ export default function PropertyDetail() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
           role="dialog"
           aria-modal="true"
-          aria-label={t('propertyDetail.galleryLabel')}
+          aria-label="Galerie photos"
           onClick={closeLightbox}
         >
           <button
             onClick={closeLightbox}
-            aria-label={t('propertyDetail.close')}
+            aria-label="Fermer"
             className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
           >
             <X className="h-5 w-5" />
@@ -606,7 +581,7 @@ export default function PropertyDetail() {
                   e.stopPropagation();
                   stepLightbox(-1);
                 }}
-                aria-label={t('propertyDetail.previousPhoto')}
+                aria-label="Photo précédente"
                 className="absolute left-4 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
               >
                 <ChevronLeft className="h-6 w-6" />
@@ -616,7 +591,7 @@ export default function PropertyDetail() {
                   e.stopPropagation();
                   stepLightbox(1);
                 }}
-                aria-label={t('propertyDetail.nextPhoto')}
+                aria-label="Photo suivante"
                 className="absolute right-4 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
               >
                 <ChevronRight className="h-6 w-6" />

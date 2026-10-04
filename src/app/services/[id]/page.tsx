@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { addDays, format, startOfToday } from 'date-fns';
-import { ar, enUS, fr } from 'date-fns/locale';
+import { fr } from 'date-fns/locale';
 import {
   MapPin,
   Star,
@@ -26,7 +26,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 import ContactHostModal from '@/components/moxbnb/ContactHostModal';
 
 const PLACEHOLDER = '/api/placeholder/800/600';
@@ -36,49 +35,10 @@ const MAX_PEOPLE = 4; // above this, the user is asked to contact the provider
 const reviewsCount = (s: any): number =>
   Array.isArray(s?.reviews) ? s.reviews.length : Number(s?.reviews) || 0;
 
-const serviceCategoryLabel = (type: string | undefined, t: (key: string) => string): string => {
-  const typeKeys: Record<string, string> = {
-    photography: 'services.photography',
-    cleaning: 'services.cleaning',
-    catering: 'services.catering',
-    transport: 'services.transport',
-    beauty: 'services.beauty',
-    sport: 'services.sport',
-    wellness: 'services.wellness',
-    cooking: 'services.cooking',
-    adventure: 'services.adventure',
-    workshop: 'services.workshop',
-    massage: 'services.massage',
-    'private-chef': 'services.privateChef',
-    'private chef': 'services.privateChef',
-    'sports-coach': 'services.sportsCoach',
-    'sports coach': 'services.sportsCoach',
-    hairdressing: 'services.hairdressing',
-  };
-  const key = type ? type.trim().toLowerCase() : undefined;
-  return key && typeKeys[key] ? t(typeKeys[key]) : type || '';
-};
-
-const periodLabel = (value: string, t: (key: string) => string): string => {
-  const periodKeys: Record<string, string> = {
-    matin: 'serviceDetail.morning',
-    morning: 'serviceDetail.morning',
-    am: 'serviceDetail.morning',
-    'après-midi': 'serviceDetail.afternoon',
-    'apres-midi': 'serviceDetail.afternoon',
-    afternoon: 'serviceDetail.afternoon',
-    pm: 'serviceDetail.afternoon',
-  };
-  const key = periodKeys[value.trim().toLowerCase()];
-  return key ? t(key) : value;
-};
-
 export default function ServiceDetail() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const { language, t } = useLanguage();
-  const dateLocale = language === 'ar' ? ar : language === 'en' ? enUS : fr;
 
   const [service, setService] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -91,6 +51,8 @@ export default function ServiceDetail() {
   const [selectedDate, setSelectedDate] = useState<Date>(addDays(startOfToday(), 1));
   const [period, setPeriod] = useState<string | null>(null);
   const [people, setPeople] = useState(2);
+  const [sheetOpen, setSheetOpen] = useState(false); // mobile booking sheet
+  const [slide, setSlide] = useState(0); // mobile gallery position
   const [menu, setMenu] = useState<string | null>(null);
 
   useEffect(() => {
@@ -102,7 +64,7 @@ export default function ServiceDetail() {
         setService(response.data?.data?.service || response.data?.data || response.data);
       } catch (err) {
         console.error('Error fetching service:', err);
-        setError('serviceDetail.loadError');
+        setError('Impossible de charger ce service.');
       } finally {
         setLoading(false);
       }
@@ -155,6 +117,24 @@ export default function ServiceDetail() {
     };
   }, [lightbox, closeLightbox, stepLightbox]);
 
+  // mobile booking sheet: lock scroll, Esc to close, auto-close when the layout becomes desktop
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSheetOpen(false);
+    };
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => mq.matches && setSheetOpen(false);
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    mq.addEventListener('change', onChange);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKey);
+      mq.removeEventListener('change', onChange);
+    };
+  }, [sheetOpen]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
@@ -178,13 +158,11 @@ export default function ServiceDetail() {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
-          <p className="text-slate-900 font-medium mb-1">
-            {error ? t(error) : t('serviceDetail.notFound')}
-          </p>
+          <p className="text-slate-900 font-medium mb-1">{error || 'Service introuvable'}</p>
           <p className="text-sm text-slate-500 mb-5">
-            {t('serviceDetail.loadErrorHint')}
+            Vérifiez votre connexion ou revenez à la liste des services.
           </p>
-          <Button onClick={() => router.back()}>{t('serviceDetail.back')}</Button>
+          <Button onClick={() => router.back()}>Retour</Button>
         </div>
       </div>
     );
@@ -195,10 +173,10 @@ export default function ServiceDetail() {
   const rating = service.rating ? Number(service.rating).toFixed(1) : null;
   const nReviews = reviewsCount(service);
   const provider = service.provider || {};
-  const providerName = provider.name || t('serviceDetail.providerFallback');
+  const providerName = provider.name || 'Prestataire';
   const included: string[] = service.servicesIncluded || [];
   const available = Boolean(service.available);
-  const dateLabel = format(selectedDate, 'EEEE d MMMM', { locale: dateLocale });
+  const dateLabel = format(selectedDate, 'EEEE d MMMM', { locale: fr });
 
   const handleBooking = () => {
     if (!available || !period) return;
@@ -230,12 +208,12 @@ export default function ServiceDetail() {
             className="inline-flex items-center gap-1 rounded-full py-1.5 pr-3 pl-2 text-sm text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700"
           >
             <ChevronLeft className="h-4 w-4" />
-            {t('serviceDetail.back')}
+            Retour
           </button>
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" className="rounded-full gap-2">
               <Share2 className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('serviceDetail.share')}</span>
+              <span className="hidden sm:inline">Partager</span>
             </Button>
             <Button
               variant="ghost"
@@ -245,9 +223,7 @@ export default function ServiceDetail() {
               aria-pressed={isFavorite}
             >
               <Heart className={`h-4 w-4 ${isFavorite ? 'fill-rose-600 text-rose-600' : ''}`} />
-              <span className="hidden sm:inline">
-                {isFavorite ? t('serviceDetail.saved') : t('serviceDetail.save')}
-              </span>
+              <span className="hidden sm:inline">{isFavorite ? 'Enregistré' : 'Enregistrer'}</span>
             </Button>
           </div>
         </div>
@@ -261,17 +237,15 @@ export default function ServiceDetail() {
             {rating ? (
               <>
                 <b className="text-slate-900">{rating}</b>
-                <span>
-                  ({nReviews} {t(nReviews === 1 ? 'serviceDetail.reviewCount' : 'serviceDetail.reviewCountPlural')})
-                </span>
+                <span>({nReviews} avis)</span>
               </>
             ) : (
-              <span>{t('serviceDetail.new')}</span>
+              <span>Nouveau</span>
             )}
           </span>
           {service.type && (
             <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-900">
-              {serviceCategoryLabel(service.type, t)}
+              {service.type}
             </span>
           )}
           <span
@@ -282,27 +256,40 @@ export default function ServiceDetail() {
             <span
               className={`h-1.5 w-1.5 rounded-full ${available ? 'bg-emerald-600' : 'bg-slate-400'}`}
             />
-            {available ? t('serviceDetail.available') : t('serviceDetail.unavailable')}
+            {available ? 'Disponible' : 'Non disponible'}
           </span>
         </div>
       </header>
 
       {/* ---------- gallery ---------- */}
       <section className="mx-auto max-w-6xl px-4">
-        <div className="relative md:hidden">
-          <img
-            src={images[0]}
-            alt={service.title || t('services.title')}
-            className="h-72 w-full rounded-2xl object-cover"
-            onClick={() => setLightbox(0)}
-          />
-          <button
-            onClick={() => setLightbox(0)}
-            className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-medium shadow"
+        <div className="relative -mx-4 md:hidden">
+          <div
+            className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            onScroll={(e) => {
+              const el = e.currentTarget;
+              setSlide(Math.round(Math.abs(el.scrollLeft) / el.clientWidth));
+            }}
           >
-            <Grid2x2 className="h-3.5 w-3.5" />
-            {images.length} {t(images.length === 1 ? 'serviceDetail.photoCount' : 'serviceDetail.photoCountPlural')}
-          </button>
+            {images.map((src, i) => (
+              <button
+                key={i}
+                onClick={() => setLightbox(i)}
+                aria-label={`Ouvrir la photo ${i + 1}`}
+                className="w-full flex-shrink-0 snap-center"
+              >
+                <img
+                  src={src}
+                  alt={i === 0 ? service.title : `${service.title} ${i + 1}`}
+                  loading={i === 0 ? 'eager' : 'lazy'}
+                  className="h-72 w-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
+          <span className="pointer-events-none absolute bottom-3 end-4 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white">
+            {Math.min(slide + 1, images.length)} / {images.length}
+          </span>
         </div>
 
         <div
@@ -313,11 +300,11 @@ export default function ServiceDetail() {
           <button
             onClick={() => setLightbox(0)}
             className={`group overflow-hidden ${images.length > 1 ? 'col-span-2 row-span-2' : ''}`}
-            aria-label={`${t('serviceDetail.openPhoto')} 1`}
+            aria-label="Ouvrir la photo 1"
           >
             <img
               src={images[0]}
-              alt={service.title || t('services.title')}
+              alt={service.title}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             />
           </button>
@@ -326,11 +313,11 @@ export default function ServiceDetail() {
               key={i}
               onClick={() => setLightbox(i + 1)}
               className="group overflow-hidden"
-              aria-label={`${t('serviceDetail.openPhoto')} ${i + 2}`}
+              aria-label={`Ouvrir la photo ${i + 2}`}
             >
               <img
                 src={src}
-                alt={`${service.title || t('services.title')} ${i + 2}`}
+                alt={`${service.title} ${i + 2}`}
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
               />
             </button>
@@ -341,19 +328,19 @@ export default function ServiceDetail() {
               className="absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium shadow-md hover:bg-slate-50"
             >
               <Grid2x2 className="h-4 w-4" />
-              {t('serviceDetail.viewPhotos')} ({images.length})
+              Voir les {images.length} photos
             </button>
           )}
         </div>
       </section>
 
       {/* ---------- body ---------- */}
-      <main className="mx-auto max-w-6xl px-4 py-10 grid gap-12 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="space-y-12">
+      <main className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-10 px-4 py-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-12">
+        <div className="space-y-10 md:space-y-12">
           {/* facts + provider */}
           <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-8">
             <div>
-              <h2 className="text-xl font-semibold">{t('serviceDetail.hostedBy')} {providerName}</h2>
+              <h2 className="text-xl font-semibold">Proposé par {providerName}</h2>
               <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-600">
                 {facts.map(({ icon: Icon, label }, i) => (
                   <li key={i} className="inline-flex items-center gap-2">
@@ -367,7 +354,7 @@ export default function ServiceDetail() {
               {provider.verified && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-900">
                   <BadgeCheck className="h-3.5 w-3.5" />
-                  {t('serviceDetail.verifiedProvider')}
+                  Prestataire vérifié
                 </span>
               )}
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-900 text-white font-semibold">
@@ -378,16 +365,16 @@ export default function ServiceDetail() {
 
           {/* about */}
           <section>
-            <h2 className="text-xl font-semibold mb-3">{t('serviceDetail.about')}</h2>
+            <h2 className="text-xl font-semibold mb-3">À propos de ce service</h2>
             <p className="max-w-[65ch] leading-relaxed text-slate-600">
-              {service.description || t('serviceDetail.descriptionFallback')}
+              {service.description || "Le prestataire n'a pas encore ajouté de description."}
             </p>
           </section>
 
           {/* included */}
           {included.length > 0 && (
             <section>
-              <h2 className="text-xl font-semibold mb-4">{t('serviceDetail.included')}</h2>
+              <h2 className="text-xl font-semibold mb-4">Ce qui est inclus</h2>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {included.map((item, i) => (
                   <li
@@ -407,11 +394,11 @@ export default function ServiceDetail() {
           {/* menu: selectable, synced with the booking card */}
           {menuOptions.length > 0 && (
             <section>
-              <h2 className="text-xl font-semibold mb-1">{t('serviceDetail.menuOptions')}</h2>
+              <h2 className="text-xl font-semibold mb-1">Options de menu</h2>
               <p className="mb-4 text-sm text-slate-500">
-                {t('serviceDetail.menuPrompt')}
+                Votre choix est repris dans la réservation.
               </p>
-              <div role="radiogroup" aria-label={t('serviceDetail.menuOptions')} className="grid gap-3 sm:grid-cols-2">
+              <div role="radiogroup" aria-label="Options de menu" className="grid gap-3 sm:grid-cols-2">
                 {menuOptions.map((option) => {
                   const active = menu === option;
                   return (
@@ -444,7 +431,7 @@ export default function ServiceDetail() {
           {/* location */}
           {(service.location || service.city) && (
             <section>
-              <h2 className="text-xl font-semibold mb-3">{t('serviceDetail.location')}</h2>
+              <h2 className="text-xl font-semibold mb-3">Localisation</h2>
               <p className="inline-flex items-center gap-2 text-slate-600">
                 <MapPin className="h-5 w-5 text-sky-900" />
                 {[service.location, service.city]
@@ -463,25 +450,23 @@ export default function ServiceDetail() {
               <div>
                 <p className="font-semibold">{providerName}</p>
                 <p className="text-sm text-slate-600">
-                  {provider.memberSince
-                    ? `${t('serviceDetail.memberSince')} ${provider.memberSince}`
-                    : t('serviceDetail.defaultProvider')}
+                  {provider.memberSince ? `Membre depuis ${provider.memberSince}` : 'Prestataire Moxbnb'}
                 </p>
               </div>
             </div>
             <dl className="mt-5 grid grid-cols-3 gap-4 text-sm">
               <div>
-                <dt className="text-slate-500">{t('serviceDetail.responseRate')}</dt>
+                <dt className="text-slate-500">Taux de réponse</dt>
                 <dd className="font-semibold">
                   {provider.responseRate ? `${provider.responseRate} %` : '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">{t('serviceDetail.responseTime')}</dt>
+                <dt className="text-slate-500">Réponse en</dt>
                 <dd className="font-semibold">{provider.responseTime || '—'}</dd>
               </div>
               <div>
-                <dt className="text-slate-500">{t('serviceDetail.reviewsReceived')}</dt>
+                <dt className="text-slate-500">Avis reçus</dt>
                 <dd className="font-semibold">{provider.reviews ?? nReviews}</dd>
               </div>
             </dl>
@@ -491,18 +476,43 @@ export default function ServiceDetail() {
               onClick={() => setIsContactModalOpen(true)}
             >
               <MessageCircle className="h-4 w-4" />
-              {t('serviceDetail.contactProvider')}
+              Contacter le prestataire
             </Button>
           </section>
         </div>
 
         {/* ---------- booking card ---------- */}
-        <aside id="reserver" className="lg:sticky lg:top-6 lg:self-start scroll-mt-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_8px_30px_rgb(15_58_91/0.08)]">
+        {sheetOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            onClick={() => setSheetOpen(false)}
+            aria-hidden
+          />
+        )}
+        <aside
+          id="reserver"
+          role={sheetOpen ? 'dialog' : undefined}
+          aria-modal={sheetOpen ? true : undefined}
+          aria-label="Réservation"
+          className={`${
+            sheetOpen
+              ? 'fixed inset-x-0 bottom-0 z-50 max-h-[90vh] overflow-y-auto overscroll-contain rounded-t-3xl bg-white shadow-2xl'
+              : 'hidden'
+          } scroll-mt-6 lg:sticky lg:top-6 lg:block lg:self-start`}
+        >
+          <div className="bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] lg:rounded-3xl lg:border lg:border-slate-200 lg:pb-6 lg:shadow-[0_8px_30px_rgb(15_58_91/0.08)]">
+            <button
+              type="button"
+              onClick={() => setSheetOpen(false)}
+              aria-label="Fermer"
+              className="-mt-1 mb-2 ms-auto flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 lg:hidden"
+            >
+              <X className="h-4 w-4" />
+            </button>
             <div className="flex items-baseline justify-between">
               <p>
                 <span className="text-3xl font-semibold tracking-tight">{price} DT</span>
-                <span className="text-sm text-slate-500"> {t('serviceDetail.perService')}</span>
+                <span className="text-sm text-slate-500"> / prestation</span>
               </p>
               {rating && (
                 <span className="inline-flex items-center gap-1 text-sm">
@@ -514,7 +524,8 @@ export default function ServiceDetail() {
 
             {!available && (
               <p className="mt-4 rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-600">
-                {t('serviceDetail.unavailableBooking')}
+                Ce service n'accepte pas de réservation pour le moment. Vous pouvez contacter le
+                prestataire pour connaître ses prochaines disponibilités.
               </p>
             )}
 
@@ -523,9 +534,9 @@ export default function ServiceDetail() {
               <div className="mt-5">
                 <p className="mb-2 text-sm font-medium capitalize">{dateLabel}</p>
                 <div
-                  className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2"
+                  className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2"
                   role="listbox"
-                  aria-label={t('serviceDetail.chooseDate')}
+                  aria-label="Choisir une date"
                 >
                   {dates.map((d) => {
                     const active = d.toDateString() === selectedDate.toDateString();
@@ -535,18 +546,18 @@ export default function ServiceDetail() {
                         role="option"
                         aria-selected={active}
                         onClick={() => setSelectedDate(d)}
-                        className={`flex w-14 flex-shrink-0 flex-col items-center rounded-2xl border px-2 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 ${
+                        className={`flex w-14 flex-shrink-0 snap-start flex-col items-center rounded-2xl border px-2 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 ${
                           active
                             ? 'border-sky-900 bg-sky-900 text-white'
                             : 'border-slate-200 hover:border-slate-400'
                         }`}
                       >
                         <span className={`text-xs ${active ? 'text-sky-100' : 'text-slate-500'}`}>
-                          {format(d, 'EEE', { locale: dateLocale })}
+                          {format(d, 'EEE', { locale: fr })}
                         </span>
                         <span className="text-lg font-semibold leading-tight">{format(d, 'd')}</span>
                         <span className={`text-xs ${active ? 'text-sky-100' : 'text-slate-500'}`}>
-                          {format(d, 'MMM', { locale: dateLocale })}
+                          {format(d, 'MMM', { locale: fr })}
                         </span>
                       </button>
                     );
@@ -569,7 +580,7 @@ export default function ServiceDetail() {
                           : 'border-slate-200 text-slate-700 hover:border-slate-400'
                       }`}
                     >
-                      {periodLabel(p, t)}
+                      {p}
                     </button>
                   );
                 })}
@@ -579,16 +590,16 @@ export default function ServiceDetail() {
               <div className="mt-5 flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3">
                 <Users className="h-5 w-5 text-slate-500" />
                 <span className="flex-1">
-                  <span className="block text-xs text-slate-500">{t('serviceDetail.peopleLabel')}</span>
+                  <span className="block text-xs text-slate-500">Nombre de personnes</span>
                   <span className="block text-sm font-medium">
-                    {people} {t(people === 1 ? 'serviceDetail.person' : 'serviceDetail.people')}
+                    {people} personne{people > 1 ? 's' : ''}
                   </span>
                 </span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPeople((g) => Math.max(1, g - 1))}
                     disabled={people <= 1}
-                    aria-label={t('serviceDetail.removePerson')}
+                    aria-label="Retirer une personne"
                     className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 hover:bg-slate-50 disabled:opacity-30"
                   >
                     <Minus className="h-4 w-4" />
@@ -596,7 +607,7 @@ export default function ServiceDetail() {
                   <button
                     onClick={() => setPeople((g) => Math.min(MAX_PEOPLE, g + 1))}
                     disabled={people >= MAX_PEOPLE}
-                    aria-label={t('serviceDetail.addPerson')}
+                    aria-label="Ajouter une personne"
                     className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 hover:bg-slate-50 disabled:opacity-30"
                   >
                     <Plus className="h-4 w-4" />
@@ -605,13 +616,13 @@ export default function ServiceDetail() {
               </div>
               {people >= MAX_PEOPLE && (
                 <p className="mt-2 text-xs text-slate-500">
-                  {t('serviceDetail.moreThan')} {MAX_PEOPLE} {t('serviceDetail.people')}?{' '}
+                  Plus de {MAX_PEOPLE} personnes ?{' '}
                   <button
                     type="button"
                     onClick={() => setIsContactModalOpen(true)}
                     className="font-medium text-sky-900 underline underline-offset-2"
                   >
-                    {t('serviceDetail.contactProviderVerb')}
+                    Contactez le prestataire
                   </button>
                 </p>
               )}
@@ -620,7 +631,7 @@ export default function ServiceDetail() {
               {menuOptions.length > 0 && (
                 <p className="mt-3 flex items-center gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-sm">
                   <UtensilsCrossed className="h-4 w-4 flex-shrink-0 text-slate-500" />
-                  <span className="text-slate-500">{t('serviceDetail.menuLabel')}</span>
+                  <span className="text-slate-500">Menu</span>
                   <span className="ml-auto text-right font-medium">{menu}</span>
                 </p>
               )}
@@ -633,46 +644,44 @@ export default function ServiceDetail() {
                 disabled={!period}
                 className="mt-5 h-12 w-full rounded-2xl bg-rose-600 text-base hover:bg-rose-700"
               >
-                {t('serviceDetail.book')} · {price} DT
+                Réserver · {price} DT
               </Button>
             ) : (
               <Button size="lg" disabled className="mt-5 h-12 w-full rounded-2xl text-base">
-                {t('serviceDetail.unavailable')}
+                Non disponible
               </Button>
             )}
 
             <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-500">
               <ShieldCheck className="h-3.5 w-3.5" />
-              {t('serviceDetail.freeCancellation')}
+              Annulation gratuite jusqu'à 48 h avant
             </p>
           </div>
         </aside>
       </main>
 
       {/* ---------- mobile sticky bar ---------- */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
+      <div className={`fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur lg:hidden ${sheetOpen ? 'hidden' : ''}`}>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <div>
             <p className="font-semibold">
-              {price} DT <span className="text-sm font-normal text-slate-500">{t('serviceDetail.perService')}</span>
+              {price} DT <span className="text-sm font-normal text-slate-500">/ prestation</span>
             </p>
             <p className="text-xs capitalize text-slate-500">
               {available
-                ? `${format(selectedDate, 'EEE d MMM', { locale: dateLocale })}${period ? ` · ${periodLabel(period, t)}` : ''}`
-                : t('serviceDetail.unavailable')}
+                ? `${format(selectedDate, 'EEE d MMM', { locale: fr })}${period ? ` · ${period}` : ''}`
+                : 'Non disponible'}
             </p>
           </div>
           <Button
             className="rounded-xl bg-rose-600 px-6 hover:bg-rose-700"
-            onClick={() =>
-              document.getElementById('reserver')?.scrollIntoView({ behavior: 'smooth' })
-            }
+            onClick={() => setSheetOpen(true)}
           >
-            {available ? t('serviceDetail.book') : t('serviceDetail.details')}
+            {available ? 'Réserver' : 'Détails'}
           </Button>
         </div>
       </div>
-      <div className="h-20 lg:hidden" />
+      <div className="h-24 lg:hidden" />
 
       {/* ---------- lightbox ---------- */}
       {lightbox !== null && (
@@ -680,12 +689,12 @@ export default function ServiceDetail() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
           role="dialog"
           aria-modal="true"
-          aria-label={t('serviceDetail.galleryLabel')}
+          aria-label="Galerie photos"
           onClick={closeLightbox}
         >
           <button
             onClick={closeLightbox}
-            aria-label={t('serviceDetail.close')}
+            aria-label="Fermer"
             className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
           >
             <X className="h-5 w-5" />
@@ -697,7 +706,7 @@ export default function ServiceDetail() {
                   e.stopPropagation();
                   stepLightbox(-1);
                 }}
-                aria-label={t('serviceDetail.previousPhoto')}
+                aria-label="Photo précédente"
                 className="absolute left-4 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
               >
                 <ChevronLeft className="h-6 w-6" />
@@ -707,7 +716,7 @@ export default function ServiceDetail() {
                   e.stopPropagation();
                   stepLightbox(1);
                 }}
-                aria-label={t('serviceDetail.nextPhoto')}
+                aria-label="Photo suivante"
                 className="absolute right-4 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
               >
                 <ChevronRight className="h-6 w-6" />

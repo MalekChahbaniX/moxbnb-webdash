@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { addDays, format, startOfToday } from 'date-fns';
-import { ar, enUS, fr } from 'date-fns/locale';
+import { fr } from 'date-fns/locale';
 import {
   MapPin,
   Star,
@@ -25,7 +25,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 import ContactHostModal from '@/components/moxbnb/ContactHostModal';
 
 const PLACEHOLDER = '/api/placeholder/800/600';
@@ -34,48 +33,10 @@ const DAYS_AHEAD = 14;
 const reviewsCount = (e: any): number =>
   Array.isArray(e?.reviews) ? e.reviews.length : Number(e?.reviews) || 0;
 
-const experienceCategoryLabel = (category: string | undefined, t: (key: string) => string): string => {
-  const categoryKeys: Record<string, string> = {
-    'guided tour': 'experiences.guidedTours',
-    'guided tours': 'experiences.guidedTours',
-    guided_tours: 'experiences.guidedTours',
-    'visite guidée': 'experiences.guidedTours',
-    'visites guidées': 'experiences.guidedTours',
-    cultural: 'experiences.cultural',
-    culturel: 'experiences.cultural',
-    culinary: 'experiences.culinary',
-    culinaire: 'experiences.culinary',
-    adventure: 'experiences.adventure',
-    aventure: 'experiences.adventure',
-    artistic: 'experiences.artistic',
-    artistique: 'experiences.artistic',
-    'water-sports': 'experiences.waterSports',
-    water_sports: 'experiences.waterSports',
-    'sports nautiques': 'experiences.waterSports',
-    desert: 'experiences.desert',
-    désert: 'experiences.desert',
-    gastronomy: 'experiences.gastronomy',
-    gastronomie: 'experiences.gastronomy',
-    nature: 'experiences.nature',
-    wellness: 'experiences.wellness',
-    'bien-être': 'experiences.wellness',
-    photography: 'experiences.photography',
-    photographie: 'experiences.photography',
-    crafts: 'experiences.crafts',
-    artisanat: 'experiences.crafts',
-    music: 'experiences.music',
-    musique: 'experiences.music',
-  };
-  const key = category ? categoryKeys[category.trim().toLowerCase()] : undefined;
-  return key ? t(key) : category || '';
-};
-
 export default function ExperienceDetail() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const { language, t } = useLanguage();
-  const dateLocale = language === 'ar' ? ar : language === 'en' ? enUS : fr;
 
   const [experience, setExperience] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -88,6 +49,8 @@ export default function ExperienceDetail() {
   const [selectedDate, setSelectedDate] = useState<Date>(addDays(startOfToday(), 1));
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [participants, setParticipants] = useState(2);
+  const [sheetOpen, setSheetOpen] = useState(false); // mobile booking sheet
+  const [slide, setSlide] = useState(0); // mobile gallery position
 
   useEffect(() => {
     if (!params.id) return;
@@ -98,7 +61,7 @@ export default function ExperienceDetail() {
         setExperience(response.data?.data?.experience || response.data?.data || response.data);
       } catch (err) {
         console.error('Error fetching experience:', err);
-        setError('experienceDetail.loadError');
+        setError("Impossible de charger cette expérience.");
       } finally {
         setLoading(false);
       }
@@ -148,6 +111,24 @@ export default function ExperienceDetail() {
     };
   }, [lightbox, closeLightbox, stepLightbox]);
 
+  // mobile booking sheet: lock scroll, Esc to close, auto-close when the layout becomes desktop
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSheetOpen(false);
+    };
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => mq.matches && setSheetOpen(false);
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    mq.addEventListener('change', onChange);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKey);
+      mq.removeEventListener('change', onChange);
+    };
+  }, [sheetOpen]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
@@ -171,13 +152,11 @@ export default function ExperienceDetail() {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
-          <p className="text-slate-900 font-medium mb-1">
-            {error ? t(error) : t('experienceDetail.notFound')}
-          </p>
+          <p className="text-slate-900 font-medium mb-1">{error || 'Expérience introuvable'}</p>
           <p className="text-sm text-slate-500 mb-5">
-            {t('experienceDetail.loadErrorHint')}
+            Vérifiez votre connexion ou revenez à la liste des expériences.
           </p>
-          <Button onClick={() => router.back()}>{t('experienceDetail.back')}</Button>
+          <Button onClick={() => router.back()}>Retour</Button>
         </div>
       </div>
     );
@@ -192,14 +171,12 @@ export default function ExperienceDetail() {
   const host = experience.host || experience.hostId || {};
   const hostName =
     host.name ||
-    (host.firstName || host.lastName
-      ? `${host.firstName || ''} ${host.lastName || ''}`.trim()
-      : t('experienceDetail.hostFallback'));
+    (host.firstName || host.lastName ? `${host.firstName || ''} ${host.lastName || ''}`.trim() : 'Hôte');
   const steps: string[] = experience.whatYouWillDo || [];
   const included: string[] = experience.whatIsIncluded || [];
   const requirements: string[] = experience.requirements || [];
 
-  const dateLabel = format(selectedDate, 'EEEE d MMMM', { locale: dateLocale });
+  const dateLabel = format(selectedDate, "EEEE d MMMM", { locale: fr });
 
   const handleBooking = () => {
     if (!selectedTime) return;
@@ -213,10 +190,7 @@ export default function ExperienceDetail() {
 
   const facts = [
     experience.duration && { icon: Clock, label: experience.duration },
-    {
-      icon: Users,
-      label: `${maxGuests} ${t(maxGuests === 1 ? 'experienceDetail.maxPerson' : 'experienceDetail.maxPeople')}`,
-    },
+    { icon: Users, label: `Max ${maxGuests} personnes` },
     experience.location && { icon: MapPin, label: experience.location },
   ].filter(Boolean) as { icon: any; label: string }[];
 
@@ -230,12 +204,12 @@ export default function ExperienceDetail() {
             className="inline-flex items-center gap-1 rounded-full py-1.5 pr-3 pl-2 text-sm text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700"
           >
             <ChevronLeft className="h-4 w-4" />
-            {t('experienceDetail.back')}
+            Retour
           </button>
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" className="rounded-full gap-2">
               <Share2 className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('experienceDetail.share')}</span>
+              <span className="hidden sm:inline">Partager</span>
             </Button>
             <Button
               variant="ghost"
@@ -245,9 +219,7 @@ export default function ExperienceDetail() {
               aria-pressed={isFavorite}
             >
               <Heart className={`h-4 w-4 ${isFavorite ? 'fill-rose-600 text-rose-600' : ''}`} />
-              <span className="hidden sm:inline">
-                {isFavorite ? t('experienceDetail.saved') : t('experienceDetail.save')}
-              </span>
+              <span className="hidden sm:inline">{isFavorite ? 'Enregistré' : 'Enregistrer'}</span>
             </Button>
           </div>
         </div>
@@ -261,12 +233,10 @@ export default function ExperienceDetail() {
             {rating ? (
               <>
                 <b className="text-slate-900">{rating}</b>
-                <span>
-                  ({nReviews} {t(nReviews === 1 ? 'experienceDetail.reviewCount' : 'experienceDetail.reviewCountPlural')})
-                </span>
+                <span>({nReviews} avis)</span>
               </>
             ) : (
-              <span>{t('experienceDetail.new')}</span>
+              <span>Nouveau</span>
             )}
           </span>
           {experience.location && (
@@ -277,7 +247,7 @@ export default function ExperienceDetail() {
           )}
           {experience.category && (
             <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-900">
-              {experienceCategoryLabel(experience.category, t)}
+              {experience.category}
             </span>
           )}
         </div>
@@ -285,20 +255,33 @@ export default function ExperienceDetail() {
 
       {/* ---------- gallery ---------- */}
       <section className="mx-auto max-w-6xl px-4">
-        <div className="relative md:hidden">
-          <img
-            src={images[0]}
-            alt={experience.title || t('experiences.title')}
-            className="h-72 w-full rounded-2xl object-cover"
-            onClick={() => setLightbox(0)}
-          />
-          <button
-            onClick={() => setLightbox(0)}
-            className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-medium shadow"
+        <div className="relative -mx-4 md:hidden">
+          <div
+            className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            onScroll={(e) => {
+              const el = e.currentTarget;
+              setSlide(Math.round(Math.abs(el.scrollLeft) / el.clientWidth));
+            }}
           >
-            <Grid2x2 className="h-3.5 w-3.5" />
-            {images.length} {t(images.length === 1 ? 'experienceDetail.photoCount' : 'experienceDetail.photoCountPlural')}
-          </button>
+            {images.map((src, i) => (
+              <button
+                key={i}
+                onClick={() => setLightbox(i)}
+                aria-label={`Ouvrir la photo ${i + 1}`}
+                className="w-full flex-shrink-0 snap-center"
+              >
+                <img
+                  src={src}
+                  alt={i === 0 ? experience.title : `${experience.title} ${i + 1}`}
+                  loading={i === 0 ? 'eager' : 'lazy'}
+                  className="h-72 w-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
+          <span className="pointer-events-none absolute bottom-3 end-4 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white">
+            {Math.min(slide + 1, images.length)} / {images.length}
+          </span>
         </div>
 
         <div
@@ -309,11 +292,11 @@ export default function ExperienceDetail() {
           <button
             onClick={() => setLightbox(0)}
             className={`group overflow-hidden ${images.length > 1 ? 'col-span-2 row-span-2' : ''}`}
-            aria-label={`${t('experienceDetail.openPhoto')} 1`}
+            aria-label="Ouvrir la photo 1"
           >
             <img
               src={images[0]}
-              alt={experience.title || t('experiences.title')}
+              alt={experience.title}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             />
           </button>
@@ -322,7 +305,7 @@ export default function ExperienceDetail() {
               key={i}
               onClick={() => setLightbox(i + 1)}
               className="group overflow-hidden"
-              aria-label={`${t('experienceDetail.openPhoto')} ${i + 2}`}
+              aria-label={`Ouvrir la photo ${i + 2}`}
             >
               <img
                 src={src}
@@ -337,19 +320,19 @@ export default function ExperienceDetail() {
               className="absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium shadow-md hover:bg-slate-50"
             >
               <Grid2x2 className="h-4 w-4" />
-              {t('experienceDetail.viewPhotos')} ({images.length})
+              Voir les {images.length} photos
             </button>
           )}
         </div>
       </section>
 
       {/* ---------- body ---------- */}
-      <main className="mx-auto max-w-6xl px-4 py-10 grid gap-12 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="space-y-12">
+      <main className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-10 px-4 py-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-12">
+        <div className="space-y-10 md:space-y-12">
           {/* facts + host */}
           <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-8">
             <div>
-              <h2 className="text-xl font-semibold">{t('experienceDetail.hostedBy')} {hostName}</h2>
+              <h2 className="text-xl font-semibold">Animée par {hostName}</h2>
               <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-600">
                 {facts.map(({ icon: Icon, label }, i) => (
                   <li key={i} className="inline-flex items-center gap-2">
@@ -363,7 +346,7 @@ export default function ExperienceDetail() {
               {host.superhost && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900">
                   <Award className="h-3.5 w-3.5" />
-                  {t('experienceDetail.superhost')}
+                  Superhôte
                 </span>
               )}
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-900 text-white font-semibold">
@@ -374,16 +357,16 @@ export default function ExperienceDetail() {
 
           {/* about */}
           <section>
-            <h2 className="text-xl font-semibold mb-3">{t('experienceDetail.about')}</h2>
+            <h2 className="text-xl font-semibold mb-3">À propos de cette expérience</h2>
             <p className="max-w-[65ch] leading-relaxed text-slate-600">
-              {experience.description || t('experienceDetail.descriptionFallback')}
+              {experience.description || "L'hôte n'a pas encore ajouté de description."}
             </p>
           </section>
 
           {/* what you will do: a real sequence, so a timeline fits */}
           {steps.length > 0 && (
             <section>
-              <h2 className="text-xl font-semibold mb-5">{t('experienceDetail.whatYouWillDo')}</h2>
+              <h2 className="text-xl font-semibold mb-5">Ce que vous ferez</h2>
               <ol className="relative space-y-6 border-l-2 border-sky-100 pl-8">
                 {steps.map((item, i) => (
                   <li key={i} className="relative">
@@ -400,7 +383,7 @@ export default function ExperienceDetail() {
           {/* included */}
           {included.length > 0 && (
             <section>
-              <h2 className="text-xl font-semibold mb-4">{t('experienceDetail.included')}</h2>
+              <h2 className="text-xl font-semibold mb-4">Ce qui est inclus</h2>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {included.map((item, i) => (
                   <li
@@ -419,7 +402,7 @@ export default function ExperienceDetail() {
 
           {/* requirements */}
           <section>
-            <h2 className="text-xl font-semibold mb-4">{t('experienceDetail.thingsToKnow')}</h2>
+            <h2 className="text-xl font-semibold mb-4">À savoir avant de réserver</h2>
             {requirements.length > 0 ? (
               <ul className="space-y-2.5">
                 {requirements.map((req, i) => (
@@ -431,7 +414,7 @@ export default function ExperienceDetail() {
               </ul>
             ) : (
               <p className="text-sm text-slate-500">
-                {t('experienceDetail.noRequirements')}
+                Aucune condition particulière. Contactez l'hôte pour toute question.
               </p>
             )}
           </section>
@@ -445,25 +428,23 @@ export default function ExperienceDetail() {
               <div>
                 <p className="font-semibold">{hostName}</p>
                 <p className="text-sm text-slate-600">
-                  {host.memberSince
-                    ? `${t('experienceDetail.memberSince')} ${host.memberSince}`
-                    : t('experienceDetail.defaultHost')}
+                  {host.memberSince ? `Membre depuis ${host.memberSince}` : 'Hôte Moxbnb'}
                 </p>
               </div>
             </div>
             <dl className="mt-5 grid grid-cols-3 gap-4 text-sm">
               <div>
-                <dt className="text-slate-500">{t('experienceDetail.responseRate')}</dt>
+                <dt className="text-slate-500">Taux de réponse</dt>
                 <dd className="font-semibold">
                   {host.responseRate ? `${host.responseRate} %` : '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">{t('experienceDetail.responseTime')}</dt>
+                <dt className="text-slate-500">Réponse en</dt>
                 <dd className="font-semibold">{host.responseTime || '—'}</dd>
               </div>
               <div>
-                <dt className="text-slate-500">{t('experienceDetail.reviewsReceived')}</dt>
+                <dt className="text-slate-500">Avis reçus</dt>
                 <dd className="font-semibold">{host.reviews ?? nReviews}</dd>
               </div>
             </dl>
@@ -473,18 +454,43 @@ export default function ExperienceDetail() {
               onClick={() => setIsContactModalOpen(true)}
             >
               <MessageCircle className="h-4 w-4" />
-              {t('experienceDetail.contactHost')}
+              Contacter l'hôte
             </Button>
           </section>
         </div>
 
         {/* ---------- booking card ---------- */}
-        <aside id="reserver" className="lg:sticky lg:top-6 lg:self-start scroll-mt-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_8px_30px_rgb(15_58_91/0.08)]">
+        {sheetOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            onClick={() => setSheetOpen(false)}
+            aria-hidden
+          />
+        )}
+        <aside
+          id="reserver"
+          role={sheetOpen ? 'dialog' : undefined}
+          aria-modal={sheetOpen ? true : undefined}
+          aria-label="Réservation"
+          className={`${
+            sheetOpen
+              ? 'fixed inset-x-0 bottom-0 z-50 max-h-[90vh] overflow-y-auto overscroll-contain rounded-t-3xl bg-white shadow-2xl'
+              : 'hidden'
+          } scroll-mt-6 lg:sticky lg:top-6 lg:block lg:self-start`}
+        >
+          <div className="bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] lg:rounded-3xl lg:border lg:border-slate-200 lg:pb-6 lg:shadow-[0_8px_30px_rgb(15_58_91/0.08)]">
+            <button
+              type="button"
+              onClick={() => setSheetOpen(false)}
+              aria-label="Fermer"
+              className="-mt-1 mb-2 ms-auto flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 lg:hidden"
+            >
+              <X className="h-4 w-4" />
+            </button>
             <div className="flex items-baseline justify-between">
               <p>
                 <span className="text-3xl font-semibold tracking-tight">{price} DT</span>
-                <span className="text-sm text-slate-500"> {t('experienceDetail.perPerson')}</span>
+                <span className="text-sm text-slate-500"> / personne</span>
               </p>
               {rating && (
                 <span className="inline-flex items-center gap-1 text-sm">
@@ -498,9 +504,9 @@ export default function ExperienceDetail() {
             <div className="mt-5">
               <p className="mb-2 text-sm font-medium capitalize">{dateLabel}</p>
               <div
-                className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2"
+                className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2"
                 role="listbox"
-                aria-label={t('experienceDetail.chooseDate')}
+                aria-label="Choisir une date"
               >
                 {dates.map((d) => {
                   const active = d.toDateString() === selectedDate.toDateString();
@@ -510,18 +516,18 @@ export default function ExperienceDetail() {
                       role="option"
                       aria-selected={active}
                       onClick={() => setSelectedDate(d)}
-                      className={`flex w-14 flex-shrink-0 flex-col items-center rounded-2xl border px-2 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 ${
+                      className={`flex w-14 flex-shrink-0 snap-start flex-col items-center rounded-2xl border px-2 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 ${
                         active
                           ? 'border-sky-900 bg-sky-900 text-white'
                           : 'border-slate-200 hover:border-slate-400'
                       }`}
                     >
                       <span className={`text-xs ${active ? 'text-sky-100' : 'text-slate-500'}`}>
-                        {format(d, 'EEE', { locale: dateLocale })}
+                        {format(d, 'EEE', { locale: fr })}
                       </span>
                       <span className="text-lg font-semibold leading-tight">{format(d, 'd')}</span>
                       <span className={`text-xs ${active ? 'text-sky-100' : 'text-slate-500'}`}>
-                        {format(d, 'MMM', { locale: dateLocale })}
+                        {format(d, 'MMM', { locale: fr })}
                       </span>
                     </button>
                   );
@@ -554,16 +560,16 @@ export default function ExperienceDetail() {
             <div className="mt-5 flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3">
               <Users className="h-5 w-5 text-slate-500" />
               <span className="flex-1">
-                <span className="block text-xs text-slate-500">{t('experienceDetail.participants')}</span>
+                <span className="block text-xs text-slate-500">Participants</span>
                 <span className="block text-sm font-medium">
-                  {participants} {t(participants === 1 ? 'experienceDetail.person' : 'experienceDetail.people')}
+                  {participants} personne{participants > 1 ? 's' : ''}
                 </span>
               </span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setParticipants((g) => Math.max(1, g - 1))}
                   disabled={participants <= 1}
-                  aria-label={t('experienceDetail.removeParticipant')}
+                  aria-label="Retirer un participant"
                   className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 hover:bg-slate-50 disabled:opacity-30"
                 >
                   <Minus className="h-4 w-4" />
@@ -571,7 +577,7 @@ export default function ExperienceDetail() {
                 <button
                   onClick={() => setParticipants((g) => Math.min(maxGuests, g + 1))}
                   disabled={participants >= maxGuests}
-                  aria-label={t('experienceDetail.addParticipant')}
+                  aria-label="Ajouter un participant"
                   className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 hover:bg-slate-50 disabled:opacity-30"
                 >
                   <Plus className="h-4 w-4" />
@@ -585,23 +591,23 @@ export default function ExperienceDetail() {
               disabled={!selectedTime}
               className="mt-5 h-12 w-full rounded-2xl bg-rose-600 text-base hover:bg-rose-700"
             >
-              {t('experienceDetail.book')} · {total} DT
+              Réserver · {total} DT
             </Button>
 
             <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-500">
               <ShieldCheck className="h-3.5 w-3.5" />
-              {t('experienceDetail.freeCancellation')}
+              Annulation gratuite jusqu'à 24 h avant
             </p>
 
             <div className="mt-5 space-y-2 border-t pt-5 text-sm">
               <div className="flex justify-between text-slate-600">
                 <span>
-                  {price} DT × {participants} {t(participants === 1 ? 'experienceDetail.person' : 'experienceDetail.people')}
+                  {price} DT × {participants} personne{participants > 1 ? 's' : ''}
                 </span>
                 <span>{total} DT</span>
               </div>
               <div className="flex justify-between text-base font-semibold">
-                <span>{t('experienceDetail.total')}</span>
+                <span>Total</span>
                 <span>{total} DT</span>
               </div>
             </div>
@@ -610,28 +616,26 @@ export default function ExperienceDetail() {
       </main>
 
       {/* ---------- mobile sticky bar ---------- */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
+      <div className={`fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur lg:hidden ${sheetOpen ? 'hidden' : ''}`}>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <div>
             <p className="font-semibold">
-              {price} DT <span className="text-sm font-normal text-slate-500">{t('experienceDetail.perPerson')}</span>
+              {price} DT <span className="text-sm font-normal text-slate-500">/ personne</span>
             </p>
             <p className="text-xs capitalize text-slate-500">
-              {format(selectedDate, 'EEE d MMM', { locale: dateLocale })}
+              {format(selectedDate, 'EEE d MMM', { locale: fr })}
               {selectedTime ? ` · ${selectedTime}` : ''}
             </p>
           </div>
           <Button
             className="rounded-xl bg-rose-600 px-6 hover:bg-rose-700"
-            onClick={() =>
-              document.getElementById('reserver')?.scrollIntoView({ behavior: 'smooth' })
-            }
+            onClick={() => setSheetOpen(true)}
           >
-            {t('experienceDetail.book')}
+            Réserver
           </Button>
         </div>
       </div>
-      <div className="h-20 lg:hidden" />
+      <div className="h-24 lg:hidden" />
 
       {/* ---------- lightbox ---------- */}
       {lightbox !== null && (
@@ -639,12 +643,12 @@ export default function ExperienceDetail() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
           role="dialog"
           aria-modal="true"
-          aria-label={t('experienceDetail.galleryLabel')}
+          aria-label="Galerie photos"
           onClick={closeLightbox}
         >
           <button
             onClick={closeLightbox}
-            aria-label={t('experienceDetail.close')}
+            aria-label="Fermer"
             className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
           >
             <X className="h-5 w-5" />
@@ -656,7 +660,7 @@ export default function ExperienceDetail() {
                   e.stopPropagation();
                   stepLightbox(-1);
                 }}
-                aria-label={t('experienceDetail.previousPhoto')}
+                aria-label="Photo précédente"
                 className="absolute left-4 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
               >
                 <ChevronLeft className="h-6 w-6" />
@@ -666,7 +670,7 @@ export default function ExperienceDetail() {
                   e.stopPropagation();
                   stepLightbox(1);
                 }}
-                aria-label={t('experienceDetail.nextPhoto')}
+                aria-label="Photo suivante"
                 className="absolute right-4 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
               >
                 <ChevronRight className="h-6 w-6" />

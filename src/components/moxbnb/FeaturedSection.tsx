@@ -34,7 +34,7 @@ interface FeaturedSectionProps<T extends { _id: string }> {
 function Track({ cols, children }: { cols: 3 | 4; children: ReactNode }) {
   return (
     <div
-      className={`-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-x-6 sm:gap-y-10 sm:overflow-visible sm:px-0 sm:pb-0 ${
+      className={`flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-x-6 sm:gap-y-10 sm:overflow-visible sm:px-0 sm:pb-0 ${
         cols === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'
       }`}
     >

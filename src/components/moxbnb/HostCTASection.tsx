@@ -39,7 +39,7 @@ export default function HostCTASection() {
             </ul>
 
             <Link
-              href="/host"
+              href="/signup/host"
               className="mt-10 inline-flex h-12 items-center rounded-full bg-rose-600 px-8 text-sm font-medium text-white transition-colors hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-sky-900"
             >
               Commencer à accueillir

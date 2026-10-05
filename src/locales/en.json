@@ -10,7 +10,9 @@
       "noAccount": "Don't have an account?",
       "signUp": "Sign Up",
       "forgotPassword": "Forgot password?",
-      "rememberMe": "Remember me"
+      "rememberMe": "Remember me",
+      "wishlistTitle": "Sign in to save this",
+      "wishlistDescription": "Create an account or sign in to add properties, experiences, and services to your wishlist."
     },
     "signup": {
       "title": "Create Account",

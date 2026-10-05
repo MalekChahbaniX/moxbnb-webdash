@@ -39,6 +39,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import ContactHostModal from '@/components/moxbnb/ContactHostModal';
+import LoginRequiredDialog from '@/components/moxbnb/LoginRequiredDialog';
 
 const PLACEHOLDER = '/api/placeholder/800/600';
 
@@ -71,13 +72,14 @@ const hostFullName = (p: any): string => {
 export default function PropertyDetail() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [property, setProperty] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [isFavorite, setIsFavorite] = useState(false);
+  const [loginPromptOpen, setLoginPromptOpen] = useState(false);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
@@ -111,6 +113,15 @@ export default function PropertyDetail() {
     () => (property?.images?.length ? property.images : [PLACEHOLDER]),
     [property]
   );
+
+  const toggleFavorite = () => {
+    if (authLoading) return;
+    if (!user) {
+      setLoginPromptOpen(true);
+      return;
+    }
+    setIsFavorite((current) => !current);
+  };
 
   /* lightbox keyboard controls (hook stays above early returns) */
   const closeLightbox = useCallback(() => setLightbox(null), []);
@@ -226,7 +237,8 @@ export default function PropertyDetail() {
               variant="ghost"
               size="sm"
               className="rounded-full gap-2"
-              onClick={() => setIsFavorite(!isFavorite)}
+              onClick={toggleFavorite}
+              disabled={authLoading}
               aria-pressed={isFavorite}
             >
               <Heart
@@ -236,6 +248,7 @@ export default function PropertyDetail() {
             </Button>
           </div>
         </div>
+        <LoginRequiredDialog open={loginPromptOpen} onOpenChange={setLoginPromptOpen} />
 
         <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-balance">
           {property.title || 'Logement'}

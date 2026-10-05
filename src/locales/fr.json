@@ -10,7 +10,9 @@
       "noAccount": "Pas encore de compte ?",
       "signUp": "Inscrivez-vous",
       "forgotPassword": "Mot de passe oublié ?",
-      "rememberMe": "Se souvenir de moi"
+      "rememberMe": "Se souvenir de moi",
+      "wishlistTitle": "Connectez-vous pour enregistrer",
+      "wishlistDescription": "Créez un compte ou connectez-vous pour ajouter des logements, des expériences et des services à votre liste de souhaits."
     },
     "signup": {
       "title": "Inscription",

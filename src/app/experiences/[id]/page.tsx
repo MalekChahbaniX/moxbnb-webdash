@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import ContactHostModal from '@/components/moxbnb/ContactHostModal';
+import LoginRequiredDialog from '@/components/moxbnb/LoginRequiredDialog';
 
 const PLACEHOLDER = '/api/placeholder/800/600';
 const DAYS_AHEAD = 14;
@@ -36,13 +37,14 @@ const reviewsCount = (e: any): number =>
 export default function ExperienceDetail() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [experience, setExperience] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [isFavorite, setIsFavorite] = useState(false);
+  const [loginPromptOpen, setLoginPromptOpen] = useState(false);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
@@ -73,6 +75,15 @@ export default function ExperienceDetail() {
     () => (experience?.images?.length ? experience.images : [PLACEHOLDER]),
     [experience]
   );
+
+  const toggleFavorite = () => {
+    if (authLoading) return;
+    if (!user) {
+      setLoginPromptOpen(true);
+      return;
+    }
+    setIsFavorite((current) => !current);
+  };
 
   const timeSlots: string[] = useMemo(
     () => (experience?.timeSlots?.length ? experience.timeSlots : ['14:00']),
@@ -215,7 +226,8 @@ export default function ExperienceDetail() {
               variant="ghost"
               size="sm"
               className="rounded-full gap-2"
-              onClick={() => setIsFavorite(!isFavorite)}
+              onClick={toggleFavorite}
+              disabled={authLoading}
               aria-pressed={isFavorite}
             >
               <Heart className={`h-4 w-4 ${isFavorite ? 'fill-rose-600 text-rose-600' : ''}`} />
@@ -223,6 +235,7 @@ export default function ExperienceDetail() {
             </Button>
           </div>
         </div>
+        <LoginRequiredDialog open={loginPromptOpen} onOpenChange={setLoginPromptOpen} />
 
         <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-balance">
           {experience.title}

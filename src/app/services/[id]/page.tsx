@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import ContactHostModal from '@/components/moxbnb/ContactHostModal';
+import LoginRequiredDialog from '@/components/moxbnb/LoginRequiredDialog';
 
 const PLACEHOLDER = '/api/placeholder/800/600';
 const DAYS_AHEAD = 14;
@@ -38,13 +39,14 @@ const reviewsCount = (s: any): number =>
 export default function ServiceDetail() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [service, setService] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [isFavorite, setIsFavorite] = useState(false);
+  const [loginPromptOpen, setLoginPromptOpen] = useState(false);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
@@ -76,6 +78,15 @@ export default function ServiceDetail() {
     () => (service?.images?.length ? service.images : [PLACEHOLDER]),
     [service]
   );
+
+  const toggleFavorite = () => {
+    if (authLoading) return;
+    if (!user) {
+      setLoginPromptOpen(true);
+      return;
+    }
+    setIsFavorite((current) => !current);
+  };
   const periods: string[] = useMemo(
     () => (service?.periods?.length ? service.periods : ['Matin', 'Après-midi']),
     [service]
@@ -219,7 +230,8 @@ export default function ServiceDetail() {
               variant="ghost"
               size="sm"
               className="rounded-full gap-2"
-              onClick={() => setIsFavorite(!isFavorite)}
+              onClick={toggleFavorite}
+              disabled={authLoading}
               aria-pressed={isFavorite}
             >
               <Heart className={`h-4 w-4 ${isFavorite ? 'fill-rose-600 text-rose-600' : ''}`} />
@@ -227,6 +239,7 @@ export default function ServiceDetail() {
             </Button>
           </div>
         </div>
+        <LoginRequiredDialog open={loginPromptOpen} onOpenChange={setLoginPromptOpen} />
 
         <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-balance">
           {service.title}

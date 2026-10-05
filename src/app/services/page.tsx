@@ -20,6 +20,8 @@ import {
 import Header from '@/components/moxbnb/Header';
 import Footer from '@/components/moxbnb/Footer';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import LoginRequiredDialog from '@/components/moxbnb/LoginRequiredDialog';
 import {
   Select,
   SelectContent,
@@ -76,6 +78,17 @@ const PAGE_SIZE = 9;
 
 function ServiceListingCard({ service }: { service: ServiceItem }) {
   const [fav, setFav] = useState(false);
+  const [loginPromptOpen, setLoginPromptOpen] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+
+  const toggleFavorite = () => {
+    if (authLoading) return;
+    if (!user) {
+      setLoginPromptOpen(true);
+      return;
+    }
+    setFav((current) => !current);
+  };
 
   return (
     <article className="group">
@@ -100,13 +113,15 @@ function ServiceListingCard({ service }: { service: ServiceItem }) {
         </span>
 
         <button
-          onClick={() => setFav(!fav)}
+          onClick={toggleFavorite}
+          disabled={authLoading}
           aria-pressed={fav}
           aria-label={fav ? 'Retirer des favoris' : 'Enregistrer'}
           className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 shadow-sm transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700"
         >
           <Heart className={`h-4 w-4 ${fav ? 'fill-rose-600 text-rose-600' : 'text-slate-700'}`} />
         </button>
+        <LoginRequiredDialog open={loginPromptOpen} onOpenChange={setLoginPromptOpen} />
 
         {!service.available && (
           <span className="pointer-events-none absolute bottom-3 left-3 rounded-full bg-slate-900/85 px-3 py-1 text-xs font-medium text-white">

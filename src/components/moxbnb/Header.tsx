@@ -39,6 +39,7 @@ export default function Header() {
     { href: '/', label: t('nav.home') },
     { href: '/properties', label: t('nav.properties') },
     { href: '/student-housing', label: t('properties.studentHousing') },
+    { href: '/promotions', label: 'Offres' },
     { href: '/experiences', label: t('nav.experiences') },
     { href: '/services', label: t('nav.services') },
   ];

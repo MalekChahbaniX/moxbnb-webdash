@@ -5,6 +5,7 @@ import {
   LayoutDashboard, CalendarCheck, Home, Compass, Briefcase,
   Users, Star, BarChart3, Settings, LogOut, Shield, Menu, X
 } from 'lucide-react';
+import { BadgePercent } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,6 +27,7 @@ export default function AdminLayout({ children, activeSection, setActiveSection 
     { id: 'listings',      icon: Home,            label: t('admin.listings') },
     { id: 'experiences',   icon: Compass,         label: t('admin.experiences') },
     { id: 'services',      icon: Briefcase,       label: t('admin.services') },
+    { id: 'promotions',     icon: BadgePercent,    label: 'Promotions' },
     { id: 'users',         icon: Users,           label: t('admin.users') },
     { id: 'reviews',       icon: Star,            label: t('admin.reviews') },
     { id: 'statistics',    icon: BarChart3,       label: t('admin.statistics') },

@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { X, Home, Wrench, Calendar, MessageSquare, Users, TrendingUp, DollarSign, Mountain } from 'lucide-react';
+import { X, Home, Wrench, Calendar, MessageSquare, Users, TrendingUp, DollarSign, Mountain, BadgePercent } from 'lucide-react';
 
 const navigation = [
   { name: 'Tableau de Bord', href: '/provider/dashboard', icon: Home },
   { name: 'Mes Services', href: '/provider/services', icon: Wrench },
   { name: 'Mes Expériences', href: '/provider/experiences', icon: Mountain },
+  { name: 'Promotions', href: '/provider/promotions', icon: BadgePercent },
   { name: 'Calendrier', href: '/provider/calendar', icon: Calendar },
   { name: 'Réservations', href: '/provider/bookings', icon: Calendar },
   { name: 'Messages', href: '/provider/messages', icon: MessageSquare },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Clock, Users, ChefHat, Landmark, Palette, Compass, LayoutGrid } from 'lucide-react';
 import Header from '@/components/moxbnb/Header';
 import Footer from '@/components/moxbnb/Footer';
@@ -11,6 +11,7 @@ import {
   ChipBar,
   ResultsToolbar,
   CardGrid,
+  CardSkeletonGrid,
   ListingCard,
   StateMessage,
   LoadMore,
@@ -18,6 +19,7 @@ import {
   type ChipOption,
 } from '@/components/moxbnb/listing-kit';
 import { Button } from '@/components/ui/button';
+import { api } from '@/lib/api';
 
 type CategoryKey = 'culinary' | 'guidedTour' | 'artistic' | 'adventure';
 
@@ -150,24 +152,72 @@ const allExperiences = [
   },
 ];
 
-// only offer cities that actually have an experience
-const cityOptions = [
-  { value: 'all', label: 'Toutes les villes' },
-  ...Array.from(new Set(allExperiences.map((e) => e.city)))
-    .sort()
-    .map((c) => ({ value: c, label: c })),
-];
-
 export default function ExperiencesPage() {
+  const [experiences, setExperiences] = useState<typeof allExperiences>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState('all');
   const [city, setCity] = useState('all');
   const [sortBy, setSortBy] = useState('relevance');
   const [visible, setVisible] = useState(PAGE_SIZE);
 
+  useEffect(() => {
+    let active = true;
+    api.get('/experiences?page=1&limit=100')
+      .then((response) => {
+        if (!active) return;
+        const items = response.data?.data;
+        if (!Array.isArray(items)) throw new Error('Invalid experiences response');
+        setExperiences(items.filter((item: any) => item?._id).map((item: any) => {
+          const value = String(item.category || '').toLowerCase();
+          const category = /food|cook|culinary|cuisine/.test(value)
+            ? 'culinary'
+            : /culture|tour|guide|history/.test(value)
+              ? 'guidedTour'
+              : /art|craft|pottery/.test(value)
+                ? 'artistic'
+                : 'adventure';
+          const minutes = Number(item.duration) || 0;
+          const hours = Math.floor(minutes / 60);
+          const remainingMinutes = minutes % 60;
+          return {
+            id: String(item._id),
+            title: item.title,
+            category,
+            city: item.city || '',
+            host: [item.providerId?.firstName, item.providerId?.lastName].filter(Boolean).join(' ') || 'Prestataire',
+            duration: hours
+              ? `${hours} heure${hours > 1 ? 's' : ''}${remainingMinutes ? ` ${remainingMinutes} min` : ''}`
+              : `${minutes} min`,
+            maxGuests: Number(item.maxGuests) || 1,
+            price: Number(item.price) || 0,
+            rating: Number(item.rating) || 0,
+            reviews: Number(item.reviews) || 0,
+            image: item.images?.[0] || '/api/placeholder/800/600',
+          };
+        }));
+      })
+      .catch((error) => {
+        console.error('Unable to load experiences:', error);
+        if (active) setLoadError(true);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  const cityOptions = useMemo(() => [
+    { value: 'all', label: 'Toutes les villes' },
+    ...Array.from(new Set(experiences.map((experience) => experience.city).filter(Boolean)))
+      .sort()
+      .map((value) => ({ value, label: value })),
+  ], [experiences]);
+
   const results = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    let list = allExperiences.filter((e) => {
+    let list = experiences.filter((e) => {
       if (category !== 'all' && e.category !== category) return false;
       if (city !== 'all' && e.city !== city) return false;
       if (!q) return true;
@@ -183,7 +233,7 @@ export default function ExperiencesPage() {
     if (sortBy === 'price-desc') list.sort((a, b) => b.price - a.price);
     if (sortBy === 'rating') list.sort((a, b) => b.rating - a.rating);
     return list;
-  }, [searchTerm, category, city, sortBy]);
+  }, [experiences, searchTerm, category, city, sortBy]);
 
   const hasFilters = searchTerm !== '' || category !== 'all' || city !== 'all';
 
@@ -244,7 +294,11 @@ export default function ExperiencesPage() {
           sortOptions={sortOptions}
         />
 
-        {results.length === 0 ? (
+        {loading ? (
+          <CardSkeletonGrid cols={4} />
+        ) : loadError ? (
+          <StateMessage title="Impossible de charger les expériences" text="Vérifiez votre connexion et réessayez." />
+        ) : results.length === 0 ? (
           <StateMessage
             title="Aucune expérience ne correspond"
             text="Essayez une autre catégorie ou une autre ville."

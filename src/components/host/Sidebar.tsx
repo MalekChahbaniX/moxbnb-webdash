@@ -13,12 +13,14 @@ import {
   Users,
   TrendingUp,
   DollarSign,
-  Mountain
+  Mountain,
+  BadgePercent
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Tableau de Bord', href: '/host/dashboard', icon: Home },
   { name: 'Mes Propriétés', href: '/host/listings', icon: Home },
+  { name: 'Promotions', href: '/host/promotions', icon: BadgePercent },
   { name: 'Calendrier', href: '/host/calendar', icon: Calendar },
   { name: 'Réservations', href: '/host/bookings', icon: Calendar },
   { name: 'Messages', href: '/host/messages', icon: MessageSquare },

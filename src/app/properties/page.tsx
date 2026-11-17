@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { MapPin, LayoutGrid, Building2, Home, Waves, BedDouble, Trees } from 'lucide-react';
+import { api } from '@/lib/api';
 import Header from '@/components/moxbnb/Header';
 import Footer from '@/components/moxbnb/Footer';
 import {
@@ -148,6 +149,52 @@ function PropertiesContent() {
   const [city, setCity] = useState('all');
   const [sortBy, setSortBy] = useState('relevance');
   const [visible, setVisible] = useState(PAGE_SIZE);
+  const [properties, setProperties] = useState<typeof allProperties>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    api.get('/listings?page=1&limit=100')
+      .then((response) => {
+        if (!active) return;
+        const items = response.data?.data;
+        if (!Array.isArray(items)) throw new Error('Invalid listings response');
+        const typeLabels: Record<string, string> = {
+          APARTMENT: 'Appartement',
+          CONDO: 'Appartement',
+          HOUSE: 'Maison',
+          TOWNHOUSE: 'Maison',
+          VILLA: 'Villa',
+          STUDIO: 'Studio',
+          ROOM: 'Chambre privée',
+          PRIVATE_ROOM_STUDENTS: 'Chambre privée',
+          SHARED_ROOM: 'Chambre privée',
+          SHARED_ROOM_STUDENTS: 'Chambre privée',
+          CABIN: 'Cabane',
+          LOFT: 'Appartement',
+          ENTIRE_MAISON_STUDENTS: 'Maison',
+        };
+        setProperties(items.filter((item: any) => item?._id).map((item: any) => ({
+          id: String(item._id),
+          title: item.title,
+          type: typeLabels[item.type] || item.type,
+          location: [item.city, item.country].filter(Boolean).join(', '),
+          price: Number(item.price) || 0,
+          rating: Number(item.rating) || 0,
+          reviews: Number(item.reviews) || 0,
+          image: item.images?.[0] || '/api/placeholder/800/600',
+        })));
+      })
+      .catch((error) => {
+        console.error('Unable to load properties:', error);
+        if (active) setLoadError(true);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
 
   // keep the field in sync when the user arrives with a new ?location=
   useEffect(() => {
@@ -157,7 +204,7 @@ function PropertiesContent() {
 
   const results = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    const list = allProperties.filter((p) => {
+    const list = properties.filter((p) => {
       if (type !== 'all' && p.type !== type) return false;
       if (city !== 'all' && !p.location.toLowerCase().includes(city.toLowerCase())) return false;
       if (!q) return true;
@@ -169,7 +216,7 @@ function PropertiesContent() {
     if (sortBy === 'price-desc') sorted.sort((a, b) => b.price - a.price);
     if (sortBy === 'rating') sorted.sort((a, b) => b.rating - a.rating);
     return sorted;
-  }, [searchTerm, type, city, sortBy]);
+  }, [properties, searchTerm, type, city, sortBy]);
 
   const hasFilters = searchTerm !== '' || type !== 'all' || city !== 'all';
 
@@ -229,7 +276,11 @@ function PropertiesContent() {
           sortOptions={sortOptions}
         />
 
-        {results.length === 0 ? (
+        {loading ? (
+          <CardSkeletonGrid />
+        ) : loadError ? (
+          <StateMessage title="Impossible de charger les logements" text="Vérifiez votre connexion et réessayez." />
+        ) : results.length === 0 ? (
           <StateMessage
             title="Aucun logement ne correspond"
             text="Essayez un autre type de logement ou une autre ville."

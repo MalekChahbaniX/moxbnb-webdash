@@ -44,6 +44,10 @@ function BookingConfirmContent() {
   const [expiryDate, setExpiryDate] = useState('');
   const [cvv, setCvv] = useState('');
   const [cardName, setCardName] = useState('');
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [couponQuote, setCouponQuote] = useState<{ code: string; percent: number; discountAmount: number; totalPrice: number } | null>(null);
+  const [couponError, setCouponError] = useState('');
+  const [isCheckingCoupon, setIsCheckingCoupon] = useState(false);
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -75,6 +79,36 @@ function BookingConfirmContent() {
     }
   }, [isAuthenticated, router]);
 
+  useEffect(() => {
+    setCouponQuote(null);
+    setCouponError('');
+  }, [checkIn, checkOut]);
+
+  const applyPromoCode = async () => {
+    if (!promoCodeInput.trim() || !propertyId || !checkIn || !checkOut) {
+      setCouponError('Saisissez un code et sélectionnez vos dates avant de l’appliquer.');
+      return;
+    }
+
+    setIsCheckingCoupon(true);
+    setCouponError('');
+    try {
+      const response = await api.post('/promotions/validate', {
+        type: 'PROPERTY',
+        itemId: propertyId,
+        checkIn: checkIn.toISOString(),
+        checkOut: checkOut.toISOString(),
+        code: promoCodeInput.trim(),
+      });
+      setCouponQuote(response.data.data);
+    } catch (couponValidationError: any) {
+      setCouponQuote(null);
+      setCouponError(couponValidationError?.response?.data?.error || 'Ce code promo ne peut pas être utilisé.');
+    } finally {
+      setIsCheckingCoupon(false);
+    }
+  };
+
   const handleConfirmBooking = async () => {
     if (paymentMethod === 'card' && (!cardNumber || !expiryDate || !cvv || !cardName)) {
       alert('Veuillez remplir tous les champs de paiement');
@@ -92,6 +126,7 @@ function BookingConfirmContent() {
         guests,
         totalPrice: grandTotal,
         currency: 'TND',
+        promoCode: couponQuote?.code,
         paymentStatus: paymentMethod === 'cash' ? 'PENDING' : 'PROCESSING',
         paymentProvider: paymentMethod === 'card' ? 'STRIPE' : undefined
       };
@@ -142,9 +177,15 @@ function BookingConfirmContent() {
   const nights = Math.max(1, Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24)));
   const price = property.price || 0;
   const totalPrice = price * nights;
-  const cleaningFee = 50;
-  const serviceFee = Math.round(totalPrice * 0.1);
-  const grandTotal = totalPrice + cleaningFee + serviceFee;
+  const now = Date.now();
+  const offerIsActive = property.promotionStatus !== 'SUSPENDED' &&
+    Number(property.promotionPercent) > 0 &&
+    new Date(property.promotionStartDate).getTime() <= now &&
+    new Date(property.promotionEndDate).getTime() > now;
+  const offerDiscount = offerIsActive
+    ? Math.round(totalPrice * Number(property.promotionPercent)) / 100
+    : 0;
+  const grandTotal = couponQuote?.totalPrice ?? totalPrice - offerDiscount;
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -355,6 +396,27 @@ function BookingConfirmContent() {
                   <CardTitle className="text-xl">Détails du prix</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <Label htmlFor="promo-code">Code promotionnel</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="promo-code"
+                        value={promoCodeInput}
+                        onChange={(event) => {
+                          setPromoCodeInput(event.target.value.toUpperCase());
+                          setCouponQuote(null);
+                        }}
+                        placeholder="Ex. MOX10"
+                        maxLength={32}
+                        autoCapitalize="characters"
+                      />
+                      <Button type="button" variant="outline" onClick={applyPromoCode} disabled={isCheckingCoupon}>
+                        {isCheckingCoupon ? 'Vérification…' : couponQuote ? 'Appliqué' : 'Appliquer'}
+                      </Button>
+                    </div>
+                    {couponError && <p role="alert" className="text-sm text-red-700">{couponError}</p>}
+                    {couponQuote && <p role="status" className="text-sm font-medium text-emerald-800">Code {couponQuote.code} appliqué : {couponQuote.percent}% de réduction. Non cumulable avec la promotion de l’offre.</p>}
+                  </div>
                   <div className="space-y-2">
                     <p className="font-medium">Votre hôte</p>
                     <p className="text-sm text-muted-foreground">{property.host?.name || 'Hôte'}</p>
@@ -374,18 +436,17 @@ function BookingConfirmContent() {
                     <span className="font-medium">{totalPrice} DT</span>
                   </div>
 
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Prix par nuit</span>
-                    <span className="font-medium">{price} DT</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Nuits</span>
-                    <span className="font-medium">{nights}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Frais de service</span>
-                    <span className="font-medium">{serviceFee} DT</span>
-                  </div>
+                  {couponQuote ? (
+                    <div className="flex justify-between text-sm font-medium text-emerald-800">
+                      <span>Réduction · {couponQuote.code}</span>
+                      <span>−{couponQuote.discountAmount} DT</span>
+                    </div>
+                  ) : offerDiscount > 0 ? (
+                    <div className="flex justify-between text-sm font-medium text-emerald-800">
+                      <span>Promotion · {property.promotionPercent}%</span>
+                      <span>−{offerDiscount} DT</span>
+                    </div>
+                  ) : null}
 
                   <Separator />
 

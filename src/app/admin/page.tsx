@@ -11,6 +11,7 @@ import AdminUsers from '@/components/admin/AdminUsers';
 import AdminReviews from '@/components/admin/AdminReviews';
 import AdminStatistics from '@/components/admin/AdminStatistics';
 import AdminSettings from '@/components/admin/AdminSettings';
+import PromotionManager from '@/components/moxbnb/PromotionManager';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function AdminDashboard() {
@@ -36,6 +37,8 @@ export default function AdminDashboard() {
         return <AdminStatistics />;
       case 'settings':
         return <AdminSettings />;
+      case 'promotions':
+        return <PromotionManager admin />;
       default:
         return <AdminOverview />;
     }
